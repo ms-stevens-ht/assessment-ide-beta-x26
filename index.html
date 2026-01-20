@@ -54,6 +54,11 @@ print("Start")</textarea>
   <!-- Pyodide (CDN). Service Worker caches responses for offline use after first load. -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
   <script>
+    
+  console.log("Testing Pyodide initialization…");
+  loadPyodide()
+      .then(() => console.log("Pyodide OK"))
+      .catch(err => console.error("PYODIDE FAILED:", err));
 
     //TEMPORARY FOR TESTING ONLY
     console.log("TEST MODE: DevTools enabled");
