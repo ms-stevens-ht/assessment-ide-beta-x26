@@ -5,19 +5,20 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Exam‑Safe Python IDE</title>
-<link rel="manifest" href="manifest.json">
 
 <style>
- Segoe UI,Roboto,Arial,sans-serif; overflow:hidden; }
-
+  :root { --bg:#1e1e1e; --panel:#2d2d2d; --accent:#007acc; --txt:#eaeaea; --out:#00ff99; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--txt);
+              font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; overflow:hidden; }
   #topbar { display:flex; gap:12px; align-items:center; justify-content:space-between;
             background:var(--panel); padding:10px 12px; }
-  .left { display:flex; gap:10px; align-items:center; }
 
+  .left { display:flex; gap:10px; align-items:center; }
   label { font-size:14px; opacity:.9; }
-  input[type=text] { background:#111; color:var(--txt); border:1px solid #444;
-                    var(--accent); color:white; border:none;
-           padding:8px 14px; border-radius:4px; font-size:15px; cursor:pointer; }
+  input[type=text]{ background:#111; color:var(--txt); border:1px solid #444;
+                    border-radius:4px; padding:6px 8px; }
+  button{ background:var(--accent); color:white; border:none;
+          padding:8px 14px; border-radius:4px; font-size:15px; cursor:pointer; }
 
   #container { display:grid; grid-template-columns: 1fr 1fr;
                grid-template-rows: 1fr 1fr; height: calc(100vh - 56px); }
@@ -27,11 +28,11 @@
             font-size:16px; background:#121212; color:#ddd; border:none; outline:none; resize:none; }
 
   #output { grid-column: 2 / 3; grid-row: 1 / 2; width:100%; height:100%;
-            box-sizing:border-box; padding:12px; font-family:monospace; font-size:15px;
-            background:#0c0c0c; color:var(--out); white-space:pre-wrap; overflow:auto; }
+            box-sizing:border-box; padding:12px; font-family:monospace;
+            font-size:15px; background:#0c0c0c; color:var(--out); white-space:pre-wrap; overflow:auto; }
 
-  #questionPane { grid-column: 2 / 3; grid-row: 2 / 3; background:#0d0d0d;
-                  color:white; border-top:1px solid #333; overflow:hidden; }
+  #questionPane { grid-column: 2 / 3; grid-row: 2 / 3;
+                  background:#0d0d0d; color:white; border-top:1px solid #333; overflow:hidden; }
 
   #questionPane header { display:flex; align-items:center; justify-content:space-between;
                          padding:6px 10px; background:#111; font-size:14px; }
@@ -70,16 +71,14 @@ print("Start")</textarea>
   </section>
 </div>
 
-<!-- PYODIDE LOADER -->
+<!-- CORRECT PYODIDE SCRIPT TAG -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
-<!-- MAIN SCRIPT -->
 <script>
-console.log("JS loaded.");
+// Debug so we KNOW JS runs
+console.log("JS is running!");
 
-// =========================
-// Pyodide with stdout/stderr
-// =========================
+// Pyodide with working stdout/stderr
 let pyReady = loadPyodide({
   stdout: (msg) => {
     const out = document.getElementById("output");
@@ -94,17 +93,15 @@ let pyReady = loadPyodide({
   return py;
 }).catch(err => console.error("PYODIDE FAILED:", err));
 
-
 // ===== CONFIG =====
 const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
 const SUBMIT_TOKEN = "CHANGE_ME_SECRET";
 
-// Question source
-const QUESTION_MODE = 'drive';  // or 'local'
+// Question viewer
+const QUESTION_MODE = 'drive';
 const QUESTION_DRIVE_URL = "PASTE_DRIVE_PREVIEW_URL_HERE";
 const QUESTION_LOCAL_PATH = "./questions/sample_question.pdf";
 
-// Load question viewer
 const qFrame  = document.getElementById('questionFrame');
 const qStatus = document.getElementById('qStatus');
 const url     = (QUESTION_MODE === 'local') ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
@@ -113,7 +110,7 @@ qFrame.src = url;
 qFrame.addEventListener('load', () => qStatus.textContent = 'loaded');
 
 
-// ===== Python Execution =====
+// ===== Python runner =====
 async function runCode() {
   const out  = document.getElementById("output");
   const code = document.getElementById("editor").value;
@@ -124,17 +121,16 @@ async function runCode() {
     const py = await pyReady;
     const result = await py.runPythonAsync(code);
 
-    // If the code returned something (like a REPL)
     if (result !== undefined) {
       out.textContent += result + "\n";
     }
+
   } catch (err) {
     out.textContent += "[error] " + err + "\n";
   }
 }
 
-
-// ===== Submissions =====
+// ===== Submit =====
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
@@ -152,7 +148,7 @@ async function submitCode() {
   try {
     const resp = await fetch(SUBMIT_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+     ntent-Type": "application/json" },
       body: JSON.stringify(payload),
       mode: "cors"
     });
@@ -163,23 +159,9 @@ async function submitCode() {
   }
 }
 
-
-// ===== Event Listeners =====
+// ===== Event listeners =====
 document.getElementById("runBtn").addEventListener("click", runCode);
 document.getElementById("submitBtn").addEventListener("click", submitCode);
-
-
-// ===== Offline Service Worker =====
-try {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => navigator.serviceWorker.ready)
-      .then(() => document.getElementById('offlineFlag').textContent = 'ready')
-      .catch(() => document.getElementById('offlineFlag').textContent = 'unavailable');
-  }
-} catch (err) {
-  document.getElementById('offlineFlag').textContent = 'unsupported';
-}
 </script>
 
 </body>
