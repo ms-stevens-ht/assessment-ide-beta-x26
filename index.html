@@ -57,7 +57,7 @@ print("Start")</textarea>
 
     //TEMPORARY FOR TESTING ONLY
     console.log("TEST MODE: DevTools enabled");
-    
+    console.log("DEBUG MODE ENABLED");
     // ===== CONFIG =====
     // 1) Apps Script endpoint & token
     const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE"; // <-- replace with your deployed Apps Script 'exec' URL
@@ -72,12 +72,13 @@ print("Start")</textarea>
     // ==================
 
     // Kiosk safeguards
+    /*
     document.addEventListener('keydown', (e) => {
       if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) || (e.ctrlKey && e.key === 'U')) e.preventDefault();
       if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCode(); }
       if (e.ctrlKey && e.key !== 'Enter') e.preventDefault();
     });
-
+*/
     // Clear persistence (exam-safe)
     try { localStorage.clear(); sessionStorage.clear(); } catch {}
 
