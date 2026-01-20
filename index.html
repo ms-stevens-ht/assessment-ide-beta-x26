@@ -1,5 +1,5 @@
 <!--1-20-2026-->
-<!--5:40 pm -->
+<!--5:43 pm -->
 
 
 <!DOCTYPE html>
@@ -219,6 +219,7 @@ async function submitCode() {
 
   
   try {
+    console.log("SUBMIT_URL =", SUBMIT_URL, "SUBMIT_TOKEN =", SUBMIT_TOKEN);
     const resp = await fetch(SUBMIT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" }, // <-- only change
