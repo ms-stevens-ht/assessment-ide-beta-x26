@@ -118,6 +118,11 @@ print("Hello world!")</div>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
 <script>
+
+  
+const SUBMIT_URL   = "https://script.google.com/a/macros/my.htoakville.ca/s/AKfycbx1kp9K52HEizKyHjfHg1UuW5C2J7UeQ5s4S4rAFlsjR8rzDb2ln_y6EDdCHwpEEBic2w/exec";
+const SUBMIT_TOKEN = "kjZEukzL1WxS8NtQHRuB";
+
 // ---------------------------
 // ACE EDITOR SETUP
 // ---------------------------
@@ -131,6 +136,29 @@ editor.setOptions({
   tabSize: 4,
 });
 
+
+// ---------------------------
+// CP DETECTION
+// ---------------------------
+let pastedRanges = [];
+
+editor.on("paste", function(text) {
+  // Get the selection start
+  const range = editor.getSelectionRange();
+
+  const startLine = range.start.row + 1;           // Ace uses 0‑index
+  const numLines = text.split(/\r?\n/).length;
+
+  let endLine = startLine + numLines - 1;
+
+  if (numLines === 1) {
+    pastedRanges.push(`${startLine}`);
+  } else {
+    pastedRanges.push(`${startLine}–${endLine}`);
+  }
+});
+
+  
 // ---------------------------
 // PYODIDE SETUP
 // ---------------------------
@@ -163,10 +191,51 @@ async function runCode() {
 
 document.getElementById("runBtn").addEventListener("click", runCode);
 
-// Placeholder submit handler
-document.getElementById("submitBtn").addEventListener("click", () =>
-  alert("Submit not configured yet.")
-);
+// ---------------------------
+// SUBMIT CODE
+// ---------------------------
+
+document.getElementById("submitBtn").addEventListener("click", submitCode);
+async function submitCode() {
+  const first = document.getElementById("firstName").value.trim();
+  const last  = document.getElementById("lastName").value.trim();
+
+  if (!first || !last) {
+    alert("Enter first and last name before submitting.");
+    return;
+  }
+
+  // Combine paste-detected ranges
+  const pasteInfo = pastedRanges.join(", ");
+
+  const payload = {
+    token: SUBMIT_TOKEN,
+    firstName: first,
+    lastName: last,
+    code: editor.getValue(),          // ACE editor content
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+    pastedLines: pasteInfo            // ⭐ NEW FIELD
+  };
+
+  try {
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      mode: "cors"
+    });
+
+    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+
+    alert("Submission sent.");
+  } catch (err) {
+    alert("Error submitting code. Please tell your teacher.\n" + err);
+  }
+}
+
+
+  
 </script>
 
 </body>
