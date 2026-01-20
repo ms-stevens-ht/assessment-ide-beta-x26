@@ -115,16 +115,11 @@ async function runCode() {
   const out  = document.getElementById("output");
   const code = document.getElementById("editor").value;
 
-  out.textContent = "Running...\n\n";
+  out.textContent += "Running...\n\n";  // append, don't overwrite
 
   try {
     const py = await pyReady;
-    const result = await py.runPythonAsync(code);
-
-    if (result !== undefined) {
-      out.textContent += result + "\n";
-    }
-
+    await py.runPythonAsync(code);  // print() output handled by stdout
   } catch (err) {
     out.textContent += "[error] " + err + "\n";
   }
