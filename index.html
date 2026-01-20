@@ -226,16 +226,34 @@ print("Start")</textarea>
     async function runCode() {
       const out = document.getElementById("output");
       const code = document.getElementById("editor").value;
-      out.textContent = "Running…\n\n";
-
+    
+      out.textContent = "Running...\n\n";
+    
       try {
         const py = await pyReady;
-        const result = await py.runPythonAsync(code);
-        if (result !== undefined) out.textContent += result;
+    
+        const wrappedCode = `
+    import sys
+    from io import StringIO
+    
+    _stdout = StringIO()
+    sys.stdout = _stdout
+    
+    try:
+    ${code.split("\n").map(line => "    " + line).join("\n")}
+    finally:
+        sys.stdout = sys.__stdout__
+    
+    _stdout.getvalue()
+    `;
+    
+        const result = await py.runPythonAsync(wrappedCode);
+        out.textContent += result || "";
       } catch (err) {
         out.textContent += err;
       }
     }
+
 
     /* =============== SUBMIT =================== */
 
