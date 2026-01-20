@@ -8,37 +8,72 @@
 
 <style>
   :root { --bg:#1e1e1e; --panel:#2d2d2d; --accent:#007acc; --txt:#eaeaea; --out:#00ff99; }
-  html,body { height:100%; margin:0; background:var(--bg); color:var(--txt);
-              font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; overflow:hidden; }
-  #topbar { display:flex; gap:12px; align-items:center; justify-content:space-between;
-            background:var(--panel); padding:10px 12px; }
+  html,body {
+    height:100%; margin:0;
+    background:var(--bg); color:var(--txt);
+    font UI,Roboto,Arial,sans-serif;
+    overflow:hidden;
+  }
 
+  #topbar {
+    display:flex; gap:12px; align-items:center;
+    justify-content:space-between;
+    background:var(--panel);
+    padding:10px 12px;
+  }
   .left { display:flex; gap:10px; align-items:center; }
   label { font-size:14px; opacity:.9; }
-  input[type=text]{ background:#111; color:var(--txt); border:1px solid #444;
-                    border-radius:4px; padding:6px 8px; }
-  button{ background:var(--accent); color:white; border:none;
-          padding:8px 14px; border-radius:4px; font-size:15px; cursor:pointer; }
 
-  #container { display:grid; grid-template-columns: 1fr 1fr;
-               grid-template-rows: 1fr 1fr; height: calc(100vh - 56px); }
+  input[type=text] {
+    background:#111; color:var(--txt);
+    border:1px solid #444; border-radius:4px;
+    padding:6px 8px;
+  }
 
-  #editor { grid-column: 1 / 2; grid-row: 1 / 3; width:100%; height:100%;
-            box-sizing:border-box; padding:12px; font-family:monospace;
-            font-size:16px; background:#121212; color:#ddd; border:none; outline:none; resize:none; }
+  button {
+    background:var(--accent);
+   px 14px;
+    border-radius:4px;
+    font-size:15px; cursor:pointer;
+  }
 
-  #output { grid-column: 2 / 3; grid-row: 1 / 2; width:100%; height:100%;
-            box-sizing:border-box; padding:12px; font-family:monospace;
-            font-size:15px; background:#0c0c0c; color:var(--out); white-space:pre-wrap; overflow:auto; }
+  #container {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    height: calc(100vh - 56px);
+  }
 
-  #questionPane { grid-column: 2 / 3; grid-row: 2 / 3;
-                  background:#0d0d0d; color:white; border-top:1px solid #333; overflow:hidden; }
+  #editor {
+    grid-column:1/2; grid-row:1/3;
+    width:100%; height:100%; box-sizing:border-box;
+    padding:12px; background:#121212; color:#ddd;
+    font-family:monospace; font-size:16px;
+    border:none; outline:none; resize:none;
+  }
 
-  #questionPane header { display:flex; align-items:center; justify-content:space-between;
-                         padding:6px 10px; background:#111; font-size:14px; }
-  #questionPane iframe { width:100%; height: calc(100% - 30px); border:none; }
+  #output {
+    grid-column:2/3; grid-row:1/2;
+    width:100%; height:100%; box-sizing:border-box;
+    padding:12px; background:#0c0c0c; color:var(--out);
+    font-family:monospace; font-size:15px;
+    white-space:pre-wrap; overflow:auto;
+  }
 
-  #status { font-size:12px; opacity:.8; }
+  #questionPane {
+    grid-column:2/3; grid-row:2/3;
+    background:#0d0d0d; color:white;
+    border-top:1px solid #333;
+    overflow:hidden;
+  }
+  #questionPane header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 10px; background:#111; font-size:14px;
+  }
+  #questionPane iframe {
+    width:100%; height: calc(100% - 30px);
+    border:none;
+  }
 </style>
 </head>
 
@@ -47,38 +82,48 @@
 <div id="topbar">
   <div class="left">
     <strong>Exam IDE</strong>
-    <label>First name: <input type="text" id="firstName" autocomplete="off" spellcheck="false"></label>
-    <label>Last name: <input type="text" id="lastName" autocomplete="off" spellcheck="false"></label>
+    <label>First name:
+      <input type="text" id="firstName" autocomplete="off" spellcheck="false">
+    </label>
+    <label>Last name:
+      <input type="text" id="lastName" autocomplete="off" spellcheck="false">
+    </label>
   </div>
+
   <div class="right">
-    <span id="status">Offline-ready: <span id="offlineFlag">warming…</span></span>
+    <span id="status">Offline‑ready:
+      <span id="offlineFlag">warming…</span>
+    </span>
     <button id="runBtn">Run ▶</button>
     <button id="submitBtn">Submit</button>
   </div>
 </div>
 
 <div id="container">
-  <textarea id="editor"># Begin your exam code here
-print("Start")</textarea>
+  <textarea id="editor"># Example:
+print("Hello world!")</textarea>
+
   <pre id="output"></pre>
 
   <section id="questionPane">
     <header>
-      <span><strong>Question (View‑only)</strong></span>
+      <strong>Question (View‑only)</strong>
       <span id="qStatus" style="font-size:12px;opacity:.75"></span>
     </header>
     <iframe id="questionFrame" referrerpolicy="no-referrer"></iframe>
   </section>
 </div>
 
-<!-- CORRECT PYODIDE SCRIPT TAG -->
-<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<!-- ✔ Correct Pyodide loader -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js">
 
 <script>
-// Debug so we KNOW JS runs
-console.log("JS is running!");
+// Debug confirmation
+console.log("JS running.");
 
-// Pyodide with working stdout/stderr
+//
+// ✔ Pyodide loader with stdout/stderr capture
+//
 let pyReady = loadPyodide({
   stdout: (msg) => {
     const out = document.getElementById("output");
@@ -88,51 +133,62 @@ let pyReady = loadPyodide({
     const out = document.getElementById("output");
     out.textContent += "[error] " + msg + "\n";
   }
-}).then((py) => {
-  console.log("Pyodide OK");
+}).then(py => {
+  console.log("Pyodide ready.");
   return py;
-}).catch(err => console.error("PYODIDE FAILED:", err));
+});
 
-// ===== CONFIG =====
+// =========================
+//      CONFIGURATION
+// =========================
 const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
 const SUBMIT_TOKEN = "CHANGE_ME_SECRET";
 
-// Question viewer
-const QUESTION_MODE = 'drive';
+// Question viewer source
+const QUESTION_MODE = "drive";   // "drive" or "local"
 const QUESTION_DRIVE_URL = "PASTE_DRIVE_PREVIEW_URL_HERE";
 const QUESTION_LOCAL_PATH = "./questions/sample_question.pdf";
 
-const qFrame  = document.getElementById('questionFrame');
-const qStatus = document.getElementById('qStatus');
-const url     = (QUESTION_MODE === 'local') ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
+// Load the question viewer
+const qFrame  = document.getElementById("questionFrame");
+const qStatus = document.getElementById("qStatus");
+const questionURL =
+  (QUESTION_MODE === "local") ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
 
-qFrame.src = url;
-qFrame.addEventListener('load', () => qStatus.textContent = 'loaded');
+qFrame.src = questionURL;
+qFrame.addEventListener("load", () => qStatus.textContent = "loaded");
 
-
-// ===== Python runner =====
+//
+// ✔ Python execution
+//
 async function runCode() {
   const out  = document.getElementById("output");
   const code = document.getElementById("editor").value;
 
-  out.textContent += "Running...\n\n";
+  out.textContent = "Running...\n\n";
 
   try {
     const py = await pyReady;
     const result = await py.runPythonAsync(code);
-    if (result !== undefined && result !== null) {
-      out.textContent += "\n[Returned] " + result + "\n";
+
+    if (result !== undefined) {
+      out.textContent += result + "\n";
     }
   } catch (err) {
     out.textContent += "[error] " + err + "\n";
   }
 }
 
-// ===== Submit =====
+//
+// ✔ Submission handler
+//
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
-  if (!first || !last) { alert("Enter first and last name before submitting."); return; }
+  if (!first || !last) {
+    alert("Enter first and last name before submitting.");
+    return;
+  }
 
   const payload = {
     token: SUBMIT_TOKEN,
@@ -146,20 +202,25 @@ async function submitCode() {
   try {
     const resp = await fetch(SUBMIT_URL, {
       method: "POST",
-     ntent-Type": "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       mode: "cors"
     });
+
     if (!resp.ok) throw new Error("Submit failed: " + resp.status);
     alert("Submission sent.");
-  } catch (e) {
-    alert("Could not submit.\n" + e.message);
+  }
+  catch (err) {
+    alert("Could not submit.\n" + err.message);
   }
 }
 
-// ===== Event listeners =====
+//
+// ✔ Event listeners
+//
 document.getElementById("runBtn").addEventListener("click", runCode);
 document.getElementById("submitBtn").addEventListener("click", submitCode);
+
 </script>
 
 </body>
