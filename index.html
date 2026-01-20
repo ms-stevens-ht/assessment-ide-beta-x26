@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Exam‑Safe Python IDE</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root { --bg:#1e1e1e; --panel:#2d2d2d; --accent:#007acc; --txt:#eaeaea; --out:#00ff99; }
+  html,body { height:100%; margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; overflow:hidden; }
+  #topbar { display:flex; gap:12px; align-items:center; justify-content:space-between; background:var(--panel); padding:10px 12px; }
+  .left { display:flex; gap:10px; align-items:center; }
+  label { font-size:14px; opacity:.9; }
+  input[type=text]{ background:#111; color:var(--txt); border:1px solid #444; border-radius:4px; padding:6px 8px; }
+  button{ background:var(--accent); color:white; border:none; padding:8px 14px; border-radius:4px; font-size:15px; cursor:pointer; }
+  #container { display:grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: calc(100vh - 56px); }
+  #editor { grid-column: 1 / 2; grid-row: 1 / 3; width:100%; height:100%; box-sizing:border-box; padding:12px; font-family:monospace; font-size:16px; background:#121212; color:#ddd; border:none; outline:none; resize:none; }
+  #output { grid-column: 2 / 3; grid-row: 1 / 2; width:100%; height:100%; box-sizing:border-box; padding:12px; font-family:monospace; font-size:15px; background:#0c0c0c; color:var(--out); white-space:pre-wrap; overflow:auto; }
+  #questionPane { grid-column: 2 / 3; grid-row: 2 / 3; background:#0d0d0d; color:white; border-top:1px solid #333; overflow:hidden; }
+  #questionPane header { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:#111; font-size:14px; }
+  #questionPane iframe { width:100%; height: calc(100% - 30px); border:none; }
+  #status { font-size:12px; opacity:.8; }
+</style>
+</head>
+<body oncontextmenu="return false">
+  <div id="topbar">
+    <div class="left">
+      <strong>Exam IDE</strong>
+      <label>First name: <input type="text" id="firstName" autocomplete="off" spellcheck="false"></label>
+      <label>Last name: <input type="text" id="lastName" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <div class="right">
+      <span id="status">Offline-ready: <span id="offlineFlag">warming…</span></span>
+      <button id="runBtn">Run ▶</button>
+      <button id="submitBtn">Submit</button>
+    </div>
+  </div>
+
+  <div id="container">
+    <textarea id="editor"># Begin your exam code here
+print("Start")</textarea>
+    <pre id="output"></pre>
+
+    <section id="questionPane">
+      <header>
+        <span><strong>Question (View‑only)</strong></span>
+        <span id="qStatus" style="font-size:12px;opacity:.75"></span>
+      </header>
+      <iframe id="questionFrame" referrerpolicy="no-referrer"></iframe>
+    </section>
+  </div>
+
+  <!-- Pyodide (CDN). Service Worker caches responses for offline use after first load. -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <script>
+    // ===== CONFIG =====
+    // 1) Apps Script endpoint & token
+    const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE"; // <-- replace with your deployed Apps Script 'exec' URL
+    const SUBMIT_TOKEN = "CHANGE_ME_SECRET";                   // <-- replace with the same TOKEN in Apps Script and dashboard
+
+    // 2) Question source
+    //    MODE 'drive' uses a Google Drive /preview link (requires network + allow-list)
+    //    MODE 'local' uses a local PDF under ./questions/ (can be made fully offline)
+    const QUESTION_MODE = 'drive'; // 'drive' | 'local'
+    const QUESTION_DRIVE_URL = 'PASTE_DRIVE_PREVIEW_URL_HERE'; // e.g., https://drive.google.com/file/d/FILE_ID/preview
+    const QUESTION_LOCAL_PATH = './questions/sample_question.pdf';
+    // ==================
+
+    // Kiosk safeguards
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) || (e.ctrlKey && e.key === 'U')) e.preventDefault();
+      if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCode(); }
+      if (e.ctrlKey && e.key !== 'Enter') e.preventDefault();
+    });
+
+    // Clear persistence (exam-safe)
+    try { localStorage.clear(); sessionStorage.clear(); } catch {}
+
+    // Service worker registration (for offline caching including Pyodide assets)
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').then(() => {
+        navigator.serviceWorker.ready.then(() => document.getElementById('offlineFlag').textContent = 'ready');
+      }).catch(() => document.getElementById('offlineFlag').textContent = 'unavailable');
+    } else { document.getElementById('offlineFlag').textContent = 'unsupported'; }
+
+    // Load question into iframe
+    const qFrame = document.getElementById('questionFrame');
+    const qStatus = document.getElementById('qStatus');
+    const url = (QUESTION_MODE === 'local') ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
+    try {
+      qFrame.src = url;
+      qFrame.addEventListener('load', () => qStatus.textContent = 'loaded');
+      setTimeout(()=>{ if(!qFrame.contentWindow) qStatus.textContent='(check allow‑list / link)'; }, 3000);
+    } catch { qStatus.textContent = '(invalid link)'; }
+
+    let pyReady = loadPyodide();
+
+    async function runCode(){
+      const out = document.getElementById('output');
+      const code = document.getElementById('editor').value;
+      out.textContent = 'Running...\n\n';
+      try {
+        const py = await pyReady; // loads Pyodide (and triggers SW caching of its assets)
+        const result = await py.runPythonAsync(code);
+        if (result !== undefined) out.textContent += result;
+      } catch (err) { out.textContent += err; }
+    }
+
+    async function submitCode(){
+      const first = document.getElementById('firstName').value.trim();
+      const last  = document.getElementById('lastName').value.trim();
+      if (!first || !last) { alert('Enter first and last name before submitting.'); return; }
+
+      const payload = {
+        token: SUBMIT_TOKEN,
+        firstName: first,
+        lastName: last,
+        code: document.getElementById('editor').value,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString()
+      };
+
+      try {
+        const resp = await fetch(SUBMIT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          mode: 'cors'
+        });
+        if (!resp.ok) throw new Error('Submit failed: ' + resp.status);
+        alert('Submission sent.');
+      } catch (e) {
+        alert('Could not submit (offline?). Call the teacher.\n' + e.message);
+      }
+    }
+
+    document.getElementById('runBtn').addEventListener('click', runCode);
+    document.getElementById('submitBtn').addEventListener('click', submitCode);
+  </script>
+</body>
+</html>
