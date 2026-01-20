@@ -1,295 +1,186 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Exam-Safe Python IDE</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Exam‑Safe Python IDE</title>
+<link rel="manifest" href="manifest.json">
 
-  <link rel="manifest" href="manifest.json" />
+<style>
+ Segoe UI,Roboto,Arial,sans-serif; overflow:hidden; }
 
-  <style>
-    :root {
-      --bg:#1e1e1e;
-      --panel:#2d2d2d;
-      --accent:#007acc;
-      --txt:#eaeaea;
-      --out:#00ff99;
-    }
+  #topbar { display:flex; gap:12px; align-items:center; justify-content:space-between;
+            background:var(--panel); padding:10px 12px; }
+  .left { display:flex; gap:10px; align-items:center; }
 
-    html, body {
-      height:100%;
-      margin:0;
-      background:var(--bg);
-      color:var(--txt);
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      overflow:hidden;
-    }
+  label { font-size:14px; opacity:.9; }
+  input[type=text] { background:#111; color:var(--txt); border:1px solid #444;
+                    var(--accent); color:white; border:none;
+           padding:8px 14px; border-radius:4px; font-size:15px; cursor:pointer; }
 
-    #topbar {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      background:var(--panel);
-      padding:10px 12px;
-    }
+  #container { display:grid; grid-template-columns: 1fr 1fr;
+               grid-template-rows: 1fr 1fr; height: calc(100vh - 56px); }
 
-    .left {
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
+  #editor { grid-column: 1 / 2; grid-row: 1 / 3; width:100%; height:100%;
+            box-sizing:border-box; padding:12px; font-family:monospace;
+            font-size:16px; background:#121212; color:#ddd; border:none; outline:none; resize:none; }
 
-    label {
-      font-size:14px;
-      opacity:.9;
-    }
+  #output { grid-column: 2 / 3; grid-row: 1 / 2; width:100%; height:100%;
+            box-sizing:border-box; padding:12px; font-family:monospace; font-size:15px;
+            background:#0c0c0c; color:var(--out); white-space:pre-wrap; overflow:auto; }
 
-    input[type="text"] {
-      background:#111;
-      color:var(--txt);
-      border:1px solid #444;
-      border-radius:4px;
-      padding:6px 8px;
-    }
+  #questionPane { grid-column: 2 / 3; grid-row: 2 / 3; background:#0d0d0d;
+                  color:white; border-top:1px solid #333; overflow:hidden; }
 
-    button {
-      background:var(--accent);
-      color:#fff;
-      border:none;
-      padding:8px 14px;
-      border-radius:4px;
-      font-size:15px;
-      cursor:pointer;
-    }
+  #questionPane header { display:flex; align-items:center; justify-content:space-between;
+                         padding:6px 10px; background:#111; font-size:14px; }
+  #questionPane iframe { width:100%; height: calc(100% - 30px); border:none; }
 
-    #container {
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      grid-template-rows:1fr 1fr;
-      height:calc(100vh - 56px);
-    }
-
-    #editor {
-      grid-column:1 / 2;
-      grid-row:1 / 3;
-      padding:12px;
-      font-family:monospace;
-      font-size:16px;
-      background:#121212;
-      color:#ddd;
-      border:none;
-      outline:none;
-      resize:none;
-    }
-
-    #output {
-      grid-column:2 / 3;
-      grid-row:1 / 2;
-      padding:12px;
-      font-family:monospace;
-      font-size:15px;
-      background:#0c0c0c;
-      color:var(--out);
-      white-space:pre-wrap;
-      overflow:auto;
-    }
-
-    #questionPane {
-      grid-column:2 / 3;
-      grid-row:2 / 3;
-      background:#0d0d0d;
-      border-top:1px solid #333;
-      overflow:hidden;
-    }
-
-    #questionPane header {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:6px 10px;
-      background:#111;
-      font-size:14px;
-    }
-
-    #questionPane iframe {
-      width:100%;
-      height:calc(100% - 30px);
-      border:none;
-    }
-
-    #status {
-      font-size:12px;
-      opacity:.8;
-    }
-  </style>
+  #status { font-size:12px; opacity:.8; }
+</style>
 </head>
 
 <body oncontextmenu="return false">
 
-  <div id="topbar">
-    <div class="left">
-      <strong>Exam IDE</strong>
-      <label>First name:
-        <input type="text" id="firstName" autocomplete="off" spellcheck="false" />
-      </label>
-      <label>Last name:
-        <input type="text" id="lastName" autocomplete="off" spellcheck="false" />
-      </label>
-    </div>
-
-    <div class="right">
-      <span id="status">
-        Offline-ready:
-        <span id="offlineFlag">checking…</span>
-      </span>
-      <button id="runBtn">Run ▶</button>
-      <button id="submitBtn">Submit</button>
-    </div>
+<div id="topbar">
+  <div class="left">
+    <strong>Exam IDE</strong>
+    <label>First name: <input type="text" id="firstName" autocomplete="off" spellcheck="false"></label>
+    <label>Last name: <input type="text" id="lastName" autocomplete="off" spellcheck="false"></label>
   </div>
+  <div class="right">
+    <span id="status">Offline-ready: <span id="offlineFlag">warming…</span></span>
+    <button id="runBtn">Run ▶</button>
+    <button id="submitBtn">Submit</button>
+  </div>
+</div>
 
-  <div id="container">
-    <textarea id="editor"># Begin your exam code here
+<div id="container">
+  <textarea id="editor"># Begin your exam code here
 print("Start")</textarea>
+  <pre id="output"></pre>
 
-    <pre id="output"></pre>
+  <section id="questionPane">
+    <header>
+      <span><strong>Question (View‑only)</strong></span>
+      <span id="qStatus" style="font-size:12px;opacity:.75"></span>
+    </header>
+    <iframe id="questionFrame" referrerpolicy="no-referrer"></iframe>
+  </section>
+</div>
 
-    <section id="questionPane">
-      <header>
-        <strong>Question (View-only)</strong>
-        <span id="qStatus" style="font-size:12px;opacity:.75"></span>
-      </header>
-      <iframe id="questionFrame" referrerpolicy="no-referrer"></iframe>
-    </section>
-  </div>
+<!-- PYODIDE LOADER -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
-  <!-- Pyodide -->
-  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<!-- MAIN SCRIPT -->
+<script>
+console.log("JS loaded.");
 
-  <script>
-    console.log("Initializing Exam IDE…");
-
-    /* ================= CONFIG ================= */
-
-    const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
-    const SUBMIT_TOKEN = "CHANGE_ME_SECRET";
-
-    const QUESTION_MODE = "local"; // 'local' or 'drive'
-    const QUESTION_DRIVE_URL = "PASTE_DRIVE_PREVIEW_URL_HERE";
-    const QUESTION_LOCAL_PATH = "./questions/sample_question.pdf";
-
-    /* ============== CLEAN START ============== */
-
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch {}
-
-    /* ============ SERVICE WORKER ============== */
-
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("service-worker.js")
-        .then(() => navigator.serviceWorker.ready)
-        .then(() => {
-          document.getElementById("offlineFlag").textContent = "ready";
-        })
-        .catch(() => {
-          document.getElementById("offlineFlag").textContent = "unavailable";
-        });
-    } else {
-      document.getElementById("offlineFlag").textContent = "unsupported";
-    }
-
-    /* ============= QUESTION VIEW ============== */
-
-    const qFrame  = document.getElementById("questionFrame");
-    const qStatus = document.getElementById("qStatus");
-
-    qFrame.src =
-      QUESTION_MODE === "local"
-        ? QUESTION_LOCAL_PATH
-        : QUESTION_DRIVE_URL;
-
-    qFrame.addEventListener("load", () => {
-      qStatus.textContent = "loaded";
-    });
-
-    /* ============== PYODIDE =================== */
-
-    const pyReady = loadPyodide();
-
-    pyReady
-      .then(() => console.log("Pyodide ready"))
-      .catch(err => console.error("Pyodide failed:", err));
-
-    async function runCode() {
+// =========================
+// Pyodide with stdout/stderr
+// =========================
+let pyReady = loadPyodide({
+  stdout: (msg) => {
     const out = document.getElementById("output");
-    const code = document.getElementById("editor").value;
-  
-    out.textContent = "Running...\n\n";
-  
-    try {
-      const py = await pyReady;
-  
-      // Clear previous stdout
-      py.setStdout({
-        batched: (s) => {
-          out.textContent += s;
-        }
-      });
-  
-      py.setStderr({
-        batched: (s) => {
-          out.textContent += s;
-        }
-      });
-  
-      await py.runPythonAsync(code);
-  
-    } catch (err) {
-      out.textContent += err;
-      }
+    out.textContent += msg + "\n";
+  },
+  stderr: (msg) => {
+    const out = document.getElementById("output");
+    out.textContent += "[error] " + msg + "\n";
+  }
+}).then((py) => {
+  console.log("Pyodide OK");
+  return py;
+}).catch(err => console.error("PYODIDE FAILED:", err));
+
+
+// ===== CONFIG =====
+const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
+const SUBMIT_TOKEN = "CHANGE_ME_SECRET";
+
+// Question source
+const QUESTION_MODE = 'drive';  // or 'local'
+const QUESTION_DRIVE_URL = "PASTE_DRIVE_PREVIEW_URL_HERE";
+const QUESTION_LOCAL_PATH = "./questions/sample_question.pdf";
+
+// Load question viewer
+const qFrame  = document.getElementById('questionFrame');
+const qStatus = document.getElementById('qStatus');
+const url     = (QUESTION_MODE === 'local') ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
+
+qFrame.src = url;
+qFrame.addEventListener('load', () => qStatus.textContent = 'loaded');
+
+
+// ===== Python Execution =====
+async function runCode() {
+  const out  = document.getElementById("output");
+  const code = document.getElementById("editor").value;
+
+  out.textContent = "Running...\n\n";
+
+  try {
+    const py = await pyReady;
+    const result = await py.runPythonAsync(code);
+
+    // If the code returned something (like a REPL)
+    if (result !== undefined) {
+      out.textContent += result + "\n";
     }
+  } catch (err) {
+    out.textContent += "[error] " + err + "\n";
+  }
+}
 
 
+// ===== Submissions =====
+async function submitCode() {
+  const first = document.getElementById("firstName").value.trim();
+  const last  = document.getElementById("lastName").value.trim();
+  if (!first || !last) { alert("Enter first and last name before submitting."); return; }
 
-    /* =============== SUBMIT =================== */
+  const payload = {
+    token: SUBMIT_TOKEN,
+    firstName: first,
+    lastName: last,
+    code: document.getElementById("editor").value,
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString()
+  };
 
-    async function submitCode() {
-      const first = document.getElementById("firstName").value.trim();
-      const last  = document.getElementById("lastName").value.trim();
+  try {
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      mode: "cors"
+    });
+    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+    alert("Submission sent.");
+  } catch (e) {
+    alert("Could not submit.\n" + e.message);
+  }
+}
 
-      if (!first || !last) {
-        alert("Enter first and last name before submitting.");
-        return;
-      }
 
-      const payload = {
-        token: SUBMIT_TOKEN,
-        firstName: first,
-        lastName: last,
-        code: document.getElementById("editor").value,
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString()
-      };
+// ===== Event Listeners =====
+document.getElementById("runBtn").addEventListener("click", runCode);
+document.getElementById("submitBtn").addEventListener("click", submitCode);
 
-      try {
-        const resp = await fetch(SUBMIT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
 
-        if (!resp.ok) throw new Error(resp.status);
-        alert("Submission sent.");
-      } catch (e) {
-        alert("Submission failed:\n" + e.message);
-      }
-    }
+// ===== Offline Service Worker =====
+try {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => navigator.serviceWorker.ready)
+      .then(() => document.getElementById('offlineFlag').textContent = 'ready')
+      .catch(() => document.getElementById('offlineFlag').textContent = 'unavailable');
+  }
+} catch (err) {
+  document.getElementById('offlineFlag').textContent = 'unsupported';
+}
+</script>
 
-    document.getElementById("runBtn").addEventListener("click", runCode);
-    document.getElementById("submitBtn").addEventListener("click", submitCode);
-  </script>
 </body>
 </html>
