@@ -120,7 +120,7 @@ print("Hello world!")</div>
 <script>
 
   
-const SUBMIT_URL   = "https://script.google.com/macros/s/AKfycbx1kp9K52HEizKyHjfHg1UuW5C2J7UeQ5s4S4rAFlsjR8rzDb2ln_y6EDdCHwpEEBic2w/exec";
+const SUBMIT_URL   = "https://script.google.com/macros/s/AKfycbwYWYCoy9w0JRv9ywGXCFMrf0PC-G8axCOvQNjKTJTTo98KAQvJC2kRbUwY5kFpex-GLQ/exec";
 const SUBMIT_TOKEN = "kjZEukzL1WxS8NtQHRuB";
 
 // ---------------------------
@@ -196,6 +196,8 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // ---------------------------
 
 document.getElementById("submitBtn").addEventListener("click", submitCode);
+
+  
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
@@ -205,17 +207,14 @@ async function submitCode() {
     return;
   }
 
-  // Combine paste-detected ranges
-  const pasteInfo = pastedRanges.join(", ");
-
   const payload = {
     token: SUBMIT_TOKEN,
     firstName: first,
     lastName: last,
-    code: editor.getValue(),          // ACE editor content
+    code: editor.getValue(),          // Ace editor content
     userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
-    pastedLines: pasteInfo            // ⭐ NEW FIELD
+    pastedLines: pastedRanges.join(", ")   // OPTIONAL FLAGGING
   };
 
   try {
@@ -223,16 +222,18 @@ async function submitCode() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      mode: "cors"
+      mode: "cors",
+      cache: "no-store"
     });
 
     if (!resp.ok) throw new Error("Submit failed: " + resp.status);
 
     alert("Submission sent.");
   } catch (err) {
-    alert("Error submitting code. Please tell your teacher.\n" + err);
+    alert("Error submitting code. Tell your teacher.\n" + err);
   }
 }
+
 
 
   
