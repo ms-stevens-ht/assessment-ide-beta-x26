@@ -1,5 +1,5 @@
 <!--1-20-2026-->
-<!--6:46 pm -->
+<!--6:52 pm -->
 
 
 <!DOCTYPE html>
@@ -145,7 +145,7 @@ let pastedRanges = []; // array of {start,end}
 
 editor.on("paste", function(text){
 
-  e.preventDefault();
+  text.preventDefault();
   document.getElementById("paste-warning").textContent = "Pasting is disabled!";
   const range = editor.getSelectionRange();
   const start = range.start.row + 1;           // 1-based line
