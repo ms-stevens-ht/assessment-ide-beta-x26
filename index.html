@@ -224,35 +224,34 @@ print("Start")</textarea>
       .catch(err => console.error("Pyodide failed:", err));
 
     async function runCode() {
-      const out = document.getElementById("output");
-      const code = document.getElementById("editor").value;
-    
-      out.textContent = "Running...\n\n";
-    
-      try {
-        const py = await pyReady;
-    
-        const wrappedCode = `
-    import sys
-    from io import StringIO
-    
-    _stdout = StringIO()
-    sys.stdout = _stdout
-    
-    try:
-    ${code.split("\n").map(line => "    " + line).join("\n")}
-    finally:
-        sys.stdout = sys.__stdout__
-    
-    _stdout.getvalue()
-    `;
-    
-        const result = await py.runPythonAsync(wrappedCode);
-        out.textContent += result || "";
-      } catch (err) {
-        out.textContent += err;
+    const out = document.getElementById("output");
+    const code = document.getElementById("editor").value;
+  
+    out.textContent = "Running...\n\n";
+  
+    try {
+      const py = await pyReady;
+  
+      // Clear previous stdout
+      py.setStdout({
+        batched: (s) => {
+          out.textContent += s;
+        }
+      });
+  
+      py.setStderr({
+        batched: (s) => {
+          out.textContent += s;
+        }
+      });
+  
+      await py.runPythonAsync(code);
+  
+    } catch (err) {
+      out.textContent += err;
       }
     }
+
 
 
     /* =============== SUBMIT =================== */
