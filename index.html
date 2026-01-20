@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -53,6 +54,10 @@ print("Start")</textarea>
   <!-- Pyodide (CDN). Service Worker caches responses for offline use after first load. -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
   <script>
+
+    //TEMPORARY FOR TESTING ONLY
+    console.log("TEST MODE: DevTools enabled");
+    
     // ===== CONFIG =====
     // 1) Apps Script endpoint & token
     const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE"; // <-- replace with your deployed Apps Script 'exec' URL
