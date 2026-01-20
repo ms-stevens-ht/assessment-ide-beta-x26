@@ -54,99 +54,100 @@ print("Start")</textarea>
   <!-- Pyodide (CDN). Service Worker caches responses for offline use after first load. -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
   <script>
-    
+  
+<script>
   console.log("Testing Pyodide initialization…");
+  
   loadPyodide()
-      .then(() => console.log("Pyodide OK"))
-      .catch(err => console.error("PYODIDE FAILED:", err));
-
-    //TEMPORARY FOR TESTING ONLY
-    console.log("TEST MODE: DevTools enabled");
-    console.log("DEBUG MODE ENABLED");
-    // ===== CONFIG =====
-    // 1) Apps Script endpoint & token
-    const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE"; // <-- replace with your deployed Apps Script 'exec' URL
-    const SUBMIT_TOKEN = "CHANGE_ME_SECRET";                   // <-- replace with the same TOKEN in Apps Script and dashboard
-
-    // 2) Question source
-    //    MODE 'drive' uses a Google Drive /preview link (requires network + allow-list)
-    //    MODE 'local' uses a local PDF under ./questions/ (can be made fully offline)
-    const QUESTION_MODE = 'drive'; // 'drive' or 'local'
-    const QUESTION_DRIVE_URL = 'PASTE_DRIVE_PREVIEW_URL_HERE'; // e.g., https://drive.google.com/file/d/FILE_ID/preview
-    const QUESTION_LOCAL_PATH = './questions/sample_question.pdf';
-    // ==================
-
-    // Kiosk safeguards
-    /*
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) || (e.ctrlKey && e.key === 'U')) e.preventDefault();
-      if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCode(); }
-      if (e.ctrlKey && e.key !== 'Enter') e.preventDefault();
-    });
-*/
-    // Clear persistence (exam-safe)
-    try { localStorage.clear(); sessionStorage.clear(); } catch {}
-
-    // Service worker registration (for offline caching including Pyodide assets)
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').then(() => {
-        navigator.serviceWorker.ready.then(() => document.getElementById('offlineFlag').textContent = 'ready');
-      }).catch(() => document.getElementById('offlineFlag').textContent = 'unavailable');
-    } else { document.getElementById('offlineFlag').textContent = 'unsupported'; }
-
-    // Load question into iframe
-    const qFrame = document.getElementById('questionFrame');
-    const qStatus = document.getElementById('qStatus');
-    const url = (QUESTION_MODE === 'local') ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
+    .then(() => console.log("Pyodide OK"))
+    .catch(err => console.error("PYODIDE FAILED:", err));
+  
+  // ===== CONFIG =====
+  
+  // 1) Apps Script endpoint & token
+  const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
+  const SUBMIT_TOKEN = "CHANGE_ME_SECRET";
+  
+  // 2) Question source
+  //    MODE 'drive' uses Google Drive /preview (online)
+  //    MODE 'local' uses local PDF (offline)
+  const QUESTION_MODE = 'drive';   // or 'local'
+  const QUESTION_DRIVE_URL = "PASTE_DRIVE_PREVIEW_URL_HERE";
+  const QUESTION_LOCAL_PATH = "./questions/sample_question.pdf";
+  
+  // Clear persistence
+  try { localStorage.clear(); sessionStorage.clear(); } catch {}
+  
+  // Offline service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').then(() => {
+      navigator.serviceWorker.ready.then(() =>
+        document.getElementById('offlineFlag').textContent = 'ready'
+      );
+    }).catch(() => document.getElementById('offlineFlag').textContent = 'unavailable');
+  } else {
+    document.getElementById('offlineFlag').textContent = 'unsupported';
+  }
+  
+  // Question viewer
+  const qFrame  = document.getElementById('questionFrame');
+  const qStatus = document.getElementById('qStatus');
+  const url     = QUESTION_MODE === 'local' ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
+  qFrame.src    = url;
+  qFrame.addEventListener('load', () => qStatus.textContent = 'loaded');
+  
+  // Pyodide execution
+  let pyReady = loadPyodide();
+  
+  async function runCode() {
+    const out  = document.getElementById("output");
+    const code = document.getElementById("editor").value;
+    out.textContent = "Running...\n\n";
+  
     try {
-      qFrame.src = url;
-      qFrame.addEventListener('load', () => qStatus.textContent = 'loaded');
-      setTimeout(()=>{ if(!qFrame.contentWindow) qStatus.textContent='(check allow‑list / link)'; }, 3000);
-    } catch { qStatus.textContent = '(invalid link)'; }
-
-    let pyReady = loadPyodide();
-
-    async function runCode(){
-      const out = document.getElementById('output');
-      const code = document.getElementById('editor').value;
-      out.textContent = 'Running...\n\n';
-      try {
-        const py = await pyReady; // loads Pyodide (and triggers SW caching of its assets)
-        const result = await py.runPythonAsync(code);
-        if (result !== undefined) out.textContent += result;
-      } catch (err) { out.textContent += err; }
+      const py = await pyReady;
+      const result = await py.runPythonAsync(code);
+      if (result !== undefined) out.textContent += result;
+    } catch (err) {
+      out.textContent += err;
     }
-
-    async function submitCode(){
-      const first = document.getElementById('firstName').value.trim();
-      const last  = document.getElementById('lastName').value.trim();
-      if (!first || !last) { alert('Enter first and last name before submitting.'); return; }
-
-      const payload = {
-        token: SUBMIT_TOKEN,
-        firstName: first,
-        lastName: last,
-        code: document.getElementById('editor').value,
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString()
-      };
-
-      try {
-        const resp = await fetch(SUBMIT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          mode: 'cors'
-        });
-        if (!resp.ok) throw new Error('Submit failed: ' + resp.status);
-        alert('Submission sent.');
-      } catch (e) {
-        alert('Could not submit (offline?). Call the teacher.\n' + e.message);
-      }
+  }
+  
+  // Submit
+  async function submitCode() {
+    const first = document.getElementById("firstName").value.trim();
+    const last  = document.getElementById("lastName").value.trim();
+    if (!first || !last) { alert("Enter first and last name before submitting."); return; }
+  
+    const payload = {
+      token: SUBMIT_TOKEN,
+      firstName: first,
+      lastName: last,
+      code: document.getElementById("editor").value,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+  
+    try {
+      const resp = await fetch(SUBMIT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        mode: "cors"
+      });
+      if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+      alert("Submission sent.");
+    } catch (e) {
+      alert("Could not submit.\n" + e.message);
     }
-
-    document.getElementById('runBtn').addEventListener('click', runCode);
-    document.getElementById('submitBtn').addEventListener('click', submitCode);
+  }
+  
+  document.getElementById("runBtn").addEventListener("click", runCode);
+  document.getElementById("submitBtn").addEventListener("click", submitCode);
+  
+  </script>
+  
+  
   </script>
 </body>
 </html>
