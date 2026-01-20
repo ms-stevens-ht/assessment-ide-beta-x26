@@ -1,5 +1,5 @@
 <!--1-20-2026-->
-<!--2:57 pm -->
+<!--5:40 pm -->
 
 
 <!DOCTYPE html>
@@ -217,6 +217,30 @@ async function submitCode() {
     pastedLines: pastedRanges.join(", ")   // OPTIONAL FLAGGING
   };
 
+  
+  try {
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // <-- only change
+      body: JSON.stringify(payload),
+      mode: "cors",
+      cache: "no-store"
+    });
+  
+    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+  
+    // (Optional) inspect the JSON returned by Apps Script
+    // const data = await resp.json();
+    // console.log("Submit OK:", data);
+  
+    alert("Submission sent.");
+  } catch (err) {
+    alert("Error submitting code. Tell your teacher.\n" + err);
+  }
+
+
+  /*
+
   try {
     const resp = await fetch(SUBMIT_URL, {
       method: "POST",
@@ -234,7 +258,7 @@ async function submitCode() {
   }
 }
 
-
+*/
 
   
 </script>
