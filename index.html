@@ -1,5 +1,5 @@
 <!--1-20-2026-->
-<!--6:15 pm -->
+<!--6:30 pm -->
 
 
 <!DOCTYPE html>
@@ -120,7 +120,7 @@ print("Hello world!")</div>
 <script>
 
   
-const SUBMIT_URL   = "https://script.google.com/macros/s/AKfycbz0dBm6MGtfbe_P_EZ8FGdqtGRiQ6TTsQ7H1PYPiLVNv_zfsq5TG9R_IZAkxZtu7xCP7A/exec";
+const SUBMIT_URL   = "https://script.google.com/macros/s/AKfycbwbmr7N38G2DAsR2_KibGoWZZkmBH6MThJzCbWxih9ooitezc23_Fe8wNvVefBIeqCQDw/exec";
 const SUBMIT_TOKEN = "kjZEukzL1WxS8NtQHRuB";
 
 // ---------------------------
@@ -197,7 +197,36 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 
 document.getElementById("submitBtn").addEventListener("click", submitCode);
 
-  
+async function submitCode() {
+  const first = document.getElementById("firstName").value.trim();
+  const last  = document.getElementById("lastName").value.trim();
+  if (!first || !last) { alert("Enter first and last name before submitting."); return; }
+
+  const body = new URLSearchParams({
+    token: SUBMIT_TOKEN,
+    firstName: first,
+    lastName: last,
+    code: editor.getValue(),
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+    pastedLines: pastedRanges.join(", ")
+  });
+
+  try {
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, // safelisted => no preflight
+      body,
+      cache: "no-store"
+    });
+    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+    alert("Submission sent.");
+  } catch (err) {
+    alert("Error submitting code. Tell your teacher.\n" + err);
+  }
+}
+
+/*
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
@@ -233,6 +262,7 @@ async function submitCode() {
       cache: "no-store"
     });
     */
+    /*
     if (!resp.ok) throw new Error("Submit failed: " + resp.status);
 
     alert("Submission sent.");
@@ -240,7 +270,7 @@ async function submitCode() {
     alert("Error submitting code. Tell your teacher.\n" + err);
   }
 }
-
+*/
   /*
   try {
     //console.log("SUBMIT_URL =", SUBMIT_URL, "SUBMIT_TOKEN =", SUBMIT_TOKEN);
