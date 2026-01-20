@@ -10,17 +10,16 @@
   :root { --bg:#1e1e1e; --panel:#2d2d2d; --accent:#007acc; --txt:#eaeaea; --out:#00ff99; }
   html,body {
     height:100%; margin:0;
-    background:var(--bg); color:var(--txt);
-    font UI,Roboto,Arial,sans-serif;
+   ,Segoe UI,Roboto,Arial,sans-serif;
     overflow:hidden;
   }
 
   #topbar {
     display:flex; gap:12px; align-items:center;
     justify-content:space-between;
-    background:var(--panel);
-    padding:10px 12px;
+    background:var(--panel); padding:10px 12px;
   }
+
   .left { display:flex; gap:10px; align-items:center; }
   label { font-size:14px; opacity:.9; }
 
@@ -30,9 +29,7 @@
     padding:6px 8px;
   }
 
-  button {
-    background:var(--accent);
-   px 14px;
+  button border:none; padding:8px 14px;
     border-radius:4px;
     font-size:15px; cursor:pointer;
   }
@@ -45,31 +42,36 @@
   }
 
   #editor {
-    grid-column:1/2; grid-row:1/3;
-    width:100%; height:100%; box-sizing:border-box;
-    padding:12px; background:#121212; color:#ddd;
+    grid-column: 1 / 2; grid-row: 1 / 3;
+    width:100%; height:100%;
+    padding:12px; box-sizing:border-box;
+    background:#121212; color:#ddd;
     font-family:monospace; font-size:16px;
     border:none; outline:none; resize:none;
   }
 
   #output {
-    grid-column:2/3; grid-row:1/2;
-    width:100%; height:100%; box-sizing:border-box;
-    padding:12px; background:#0c0c0c; color:var(--out);
+    grid-column: 2 / 3; grid-row: 1 / 2;
+    width:100%; height:100%;
+    padding:12px;
+    box-sizing:border-box;
+    background:#0c0c0c; color:var(--out);
     font-family:monospace; font-size:15px;
     white-space:pre-wrap; overflow:auto;
   }
 
   #questionPane {
-    grid-column:2/3; grid-row:2/3;
+    grid-column: 2 / 3; grid-row: 2 / 3;
     background:#0d0d0d; color:white;
     border-top:1px solid #333;
     overflow:hidden;
   }
+
   #questionPane header {
     display:flex; align-items:center; justify-content:space-between;
     padding:6px 10px; background:#111; font-size:14px;
   }
+
   #questionPane iframe {
     width:100%; height: calc(100% - 30px);
     border:none;
@@ -82,16 +84,12 @@
 <div id="topbar">
   <div class="left">
     <strong>Exam IDE</strong>
-    <label>First name:
-      <input type="text" id="firstName" autocomplete="off" spellcheck="false">
-    </label>
-    <label>Last name:
-      <input type="text" id="lastName" autocomplete="off" spellcheck="false">
-    </label>
+    <label>First name: <input type="text" id="firstName" autocomplete="off"></label>
+    <label>Last name: <input type="text" id="lastName" autocomplete="off"></label>
   </div>
 
   <div class="right">
-    <span id="status">Offline‑ready:
+    <span id="status">Offline-ready:
       <span id="offlineFlag">warming…</span>
     </span>
     <button id="runBtn">Run ▶</button>
@@ -114,7 +112,7 @@ print("Hello world!")</textarea>
   </section>
 </div>
 
-<!-- ✔ Correct Pyodide loader -->
+<!-- ✔ CORRECT PYODIDE LOADER -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
 <script>
@@ -122,47 +120,25 @@ print("Hello world!")</textarea>
 console.log("JS running.");
 
 //
-// ✔ Pyodide loader with stdout/stderr capture
+// ✔ Load Pyodide with stdout/stderr capture
 //
 let pyReady = loadPyodide({
   stdout: (msg) => {
-    const out = document.getElementById("output");
-    out.textContent += msg + "\n";
+    document.getElementById("output").textContent += msg + "\n";
   },
   stderr: (msg) => {
-    const out = document.getElementById("output");
-    out.textContent += "[error] " + msg + "\n";
+    document.getElementById("output").textContent += "[error] " + msg + "\n";
   }
 }).then(py => {
-  console.log("Pyodide ready.");
+  console.log("Pyodide initialized.");
   return py;
 });
 
-// =========================
-//      CONFIGURATION
-// =========================
-const SUBMIT_URL   = "PASTE_APPS_SCRIPT_WEB_APP_URL_HERE";
-const SUBMIT_TOKEN = "CHANGE_ME_SECRET";
-
-// Question viewer source
-const QUESTION_MODE = "drive";   // "drive" or "local"
-const QUESTION_DRIVE_URL = "PASTE_DRIVE_PREVIEW_URL_HERE";
-const QUESTION_LOCAL_PATH = "./questions/sample_question.pdf";
-
-// Load the question viewer
-const qFrame  = document.getElementById("questionFrame");
-const qStatus = document.getElementById("qStatus");
-const questionURL =
-  (QUESTION_MODE === "local") ? QUESTION_LOCAL_PATH : QUESTION_DRIVE_URL;
-
-qFrame.src = questionURL;
-qFrame.addEventListener("load", () => qStatus.textContent = "loaded");
-
 //
-// ✔ Python execution
+// RUN PYTHON CODE
 //
 async function runCode() {
-  const out  = document.getElementById("output");
+  constentById("output");
   const code = document.getElementById("editor").value;
 
   out.textContent = "Running...\n\n";
@@ -171,56 +147,18 @@ async function runCode() {
     const py = await pyReady;
     const result = await py.runPythonAsync(code);
 
-    if (result !== undefined) {
+    if (result !== undefined)
       out.textContent += result + "\n";
-    }
+
   } catch (err) {
     out.textContent += "[error] " + err + "\n";
   }
 }
 
 //
-// ✔ Submission handler
-//
-async function submitCode() {
-  const first = document.getElementById("firstName").value.trim();
-  const last  = document.getElementById("lastName").value.trim();
-  if (!first || !last) {
-    alert("Enter first and last name before submitting.");
-    return;
-  }
-
-  const payload = {
-    token: SUBMIT_TOKEN,
-    firstName: first,
-    lastName: last,
-    code: document.getElementById("editor").value,
-    userAgent: navigator.userAgent,
-    timestamp: new Date().toISOString()
-  };
-
-  try {
-    const resp = await fetch(SUBMIT_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      mode: "cors"
-    });
-
-    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
-    alert("Submission sent.");
-  }
-  catch (err) {
-    alert("Could not submit.\n" + err.message);
-  }
-}
-
-//
-// ✔ Event listeners
+// EVENT LISTENERS
 //
 document.getElementById("runBtn").addEventListener("click", runCode);
-document.getElementById("submitBtn").addEventListener("click", submitCode);
-
 </script>
 
 </body>
