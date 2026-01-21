@@ -265,8 +265,8 @@ async function submitCode() {
   // compute merged lines + metric
   const totalLines = editor.session.getDocument().getLength();
   const merged = mergeRanges(ranges, totalLines);
-  let pCount = 0; merged.forEach(r => { pCount += (r.end - r.start + 1); }); //new?
-  //let pCount = 0; merged.forEach(r => pCount += (r.end - r.start + 1));
+  //let pCount = 0; merged.forEach(r => { pCount += (r.end - r.start + 1); }); //new?
+  let pCount = 0; merged.forEach(r => pCount += (r.end - r.start + 1));
   const pPercent = totalLines > 0 ? Math.round((pCount / totalLines) * 100) + '%' : '0%';
   
   // NOTE: mapping obfuscated locals -> backend's canonical keys
