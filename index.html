@@ -1,5 +1,5 @@
 <!--1-21-2026-->
-<!--11:19 am-->
+<!--11:43 reverted back to 10:12 version from 1-20-2026-->
 
 
 <!DOCTYPE html>
@@ -153,28 +153,23 @@ function recordRange(startRowZeroBased, numLines) {
   events++;
 }
 
-
-// 1) Ace's native paste
+// 1) Ace's native event (fires in most cases)
 editor.on("paste", function(text) {
-  const sel = editor.getSelectionRange();
+  const range = editor.getSelectionRange();
   const lines = String(text || "").split(/\r?\n/).length;
-  recordRange(sel.start.row, lines);
+  recordRange(range.start.row, lines);
 });
 
-// 2) Hidden textarea paste (OS-level paths)
-const inputEl = editor.textInput && editor.textInput.getElement
-  ? editor.textInput.getElement()
-  : null;
-if (inputEl) {
-  inputEl.addEventListener("paste", (e) => {
-    const text  = (e.clipboardData || window.clipboardData)?.getData("text") || "";
-    const lines = text.split(/\r?\n/).length;
-    const sel = editor.getSelectionRange();
-    recordRange(sel.start.row, lines);
-  });
-}
+// 2) DOM paste on Ace's hidden textarea (catches OS-level paste paths)
+const inputEl = editor.textInput.getElement();
+inputEl.addEventListener("paste", (e) => {
+  const text  = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+  const lines = text.split(/\r?\n/).length;
+  const range = editor.getSelectionRange();
+  recordRange(range.start.row, lines);
+});
 
-// 3) Hotkey + change heuristic
+// 3) Hotkey + change heuristic (fallback for edge cases)
 let pasteHotkeyAt = 0;
 editor.container.addEventListener("keydown", (e) => {
   if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V")) {
@@ -182,43 +177,46 @@ editor.container.addEventListener("keydown", (e) => {
   }
 });
 editor.session.on("change", function(delta) {
-  if (pasteHotkeyAt && (Date.now() - pasteHotkeyAt < 500) && delta.action === "insert") {
-    const startRow = delta.start.row;
-    const lineCount = delta.lines.length;
-    const firstLen  = delta.lines[0]?.length || 0;
-    if (lineCount > 1 || firstLen >= 4) {
-      recordRange(startRow, lineCount);
+  // If a change occurs within 500ms of ⌘/Ctrl+V, treat sizable inserts as paste
+  if (pasteHotkeyAt && Date.now() - pasteHotkeyAt < 500) {
+    if (delta.action === "insert") {
+      const startRow = delta.start.row;
+      const lines    = delta.lines.length;
+      const longLine = delta.lines[0]?.length || 0;
+      if (lines > 1 || longLine >= 4) {              // small single chars are likely typing
+        recordRange(startRow, lines);
+        pasteHotkeyAt = 0;
+      }
     }
-    pasteHotkeyAt = 0;
   }
 });
 
-// --- helpers for merging + labels ---
-function mergeRanges(rangesArr, maxLine){
-  if (!rangesArr || rangesArr.length === 0) return [];
-  const arr = rangesArr
-    .map(r => ({
-      start: Math.max(1, Math.min(r.start, maxLine)),
-      end:   Math.max(1, Math.min(r.end,   maxLine))
-    }))
-    .sort((a,b) => a.start - b.start);
-
-  const out = []; let cur = arr[0];
-  for (let i=1; i<arr.length; i++){
-    const r = arr[i];
-    if (r.start <= cur.end + 1) cur.end = Math.max(cur.end, r.end);
-    else { out.push(cur); cur = r; }
+// --- helpers for merging + labels (unchanged) ---
+function mergeRanges(ranges, maxLine){
+  if(!ranges || ranges.length===0) return [];
+  const arr = ranges
+    .map(r=>({start:Math.max(1,Math.min(r.start,maxLine)), end:Math.max(1,Math.min(r.end,maxLine))}))
+    .sort((a,b)=>a.start-b.start);
+  const out=[]; let cur=arr[0];
+  for(let i=1;i<arr.length;i++){
+    const r=arr[i];
+    if(r.start<=cur.end+1) cur.end=Math.max(cur.end,r.end);
+    else { out.push(cur); cur=r; }
   }
-  out.push(cur);
-  return out;
+  out.push(cur); return out;
 }
 function rangesToLabel(rs){
   return rs.map(r => r.start===r.end ? `${r.start}` : `${r.start}–${r.end}`).join(", ");
 }
+
+// (optional) call this after a successful submit to clear tracking
 function resetTracking(){
   events = 0;
   ranges.length = 0;
 }
+
+
+
   
 // ---------------------------
 // PYODIDE SETUP
@@ -236,7 +234,7 @@ let pyReady = loadPyodide({
 // ---------------------------
 async function runCode() {
   const out = document.getElementById("output");
-  //out.textContent = "Running...\n\n";
+  out.textContent = "Running...\n\n";
 
   const code = editor.getValue();
   const py = await pyReady;
@@ -256,20 +254,19 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // SUBMIT CODE
 // ---------------------------
 
+
 document.getElementById("submitBtn").addEventListener("click", submitCode);
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
   if (!first || !last) { alert("Enter first and last name before submitting."); return; }
 
-  // compute merged lines + metric
+  
   const totalLines = editor.session.getDocument().getLength();
   const merged = mergeRanges(ranges, totalLines);
-  //let pCount = 0; merged.forEach(r => { pCount += (r.end - r.start + 1); }); //new?
   let pCount = 0; merged.forEach(r => pCount += (r.end - r.start + 1));
   const pPercent = totalLines > 0 ? Math.round((pCount / totalLines) * 100) + '%' : '0%';
-  
-  // NOTE: mapping obfuscated locals -> backend's canonical keys
+
   const body = new URLSearchParams({
     token: SUBMIT_TOKEN,
     firstName: first,
@@ -277,19 +274,10 @@ async function submitCode() {
     code: editor.getValue(),
     userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
-
-    
-    // Backend expects these names; we send your values:
-    pastedLines:     rangesToLabel(merged),
-    pastedLineCount: String(pCount),
-    pastedPercent:   pPercent,
-    pasteEvents:     String(events
-
-    
-    //pLines: rangesToLabel(merged),
-   // pLineCount: String(pCount),   // NEW
-    //pPercent,                     // existing from earlier
-    //events: String(events)        // NEW
+    pLines: rangesToLabel(merged),
+    pLineCount: String(pCount),   // NEW
+    pPercent,                     // existing from earlier
+    events: String(events)        // NEW
 
   });
 
