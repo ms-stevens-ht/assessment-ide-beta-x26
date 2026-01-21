@@ -1,6 +1,6 @@
 
 <!--1-20-2026-->
-<!--9:33-->
+<!--9:47-->
 
 
 <!DOCTYPE html>
@@ -140,24 +140,83 @@ editor.setOptions({
 
 // ---------------------------
 // CP DETECTION
-// ---------------------------
-let pastedRanges = [];
+//
+  
 
+// --- robust  tracking for Ace ---
+let events = 0;            // count how many paste actions happened
+let ranges = [];          // array of {start, end}, 1-based lines
+
+function recordRange(startRowZeroBased, numLines) {
+  const start = startRowZeroBased + 1;                // convert to 1-based
+  const end   = start + Math.max(1, numLines) - 1;
+  ranges.push({ start, end });
+  events++;
+}
+
+// 1) Ace's native event (fires in most cases)
 editor.on("paste", function(text) {
-  // Get the selection start
   const range = editor.getSelectionRange();
+  const lines = String(text || "").split(/\r?\n/).length;
+  recordRange(range.start.row, lines);
+});
 
-  const startLine = range.start.row + 1;           // Ace uses 0‑index
-  const numLines = text.split(/\r?\n/).length;
+// 2) DOM paste on Ace's hidden textarea (catches OS-level paste paths)
+const inputEl = editor.textInput.getElement();
+inputEl.addEventListener("paste", (e) => {
+  const text  = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+  const lines = text.split(/\r?\n/).length;
+  const range = editor.getSelectionRange();
+  recordRange(range.start.row, lines);
+});
 
-  let endLine = startLine + numLines - 1;
-
-  if (numLines === 1) {
-    pastedRanges.push(`${startLine}`);
-  } else {
-    pastedRanges.push(`${startLine}–${endLine}`);
+// 3) Hotkey + change heuristic (fallback for edge cases)
+let pasteHotkeyAt = 0;
+editor.container.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V")) {
+    pasteHotkeyAt = Date.now();
   }
 });
+editor.session.on("change", function(delta) {
+  // If a change occurs within 500ms of ⌘/Ctrl+V, treat sizable inserts as paste
+  if (pasteHotkeyAt && Date.now() - pasteHotkeyAt < 500) {
+    if (delta.action === "insert") {
+      const startRow = delta.start.row;
+      const lines    = delta.lines.length;
+      const longLine = delta.lines[0]?.length || 0;
+      if (lines > 1 || longLine >= 4) {              // small single chars are likely typing
+        recordRange(startRow, lines);
+        pasteHotkeyAt = 0;
+      }
+    }
+  }
+});
+
+// --- helpers for merging + labels (unchanged) ---
+function mergeRanges(ranges, maxLine){
+  if(!ranges || ranges.length===0) return [];
+  const arr = ranges
+    .map(r=>({start:Math.max(1,Math.min(r.start,maxLine)), end:Math.max(1,Math.min(r.end,maxLine))}))
+    .sort((a,b)=>a.start-b.start);
+  const out=[]; let cur=arr[0];
+  for(let i=1;i<arr.length;i++){
+    const r=arr[i];
+    if(r.start<=cur.end+1) cur.end=Math.max(cur.end,r.end);
+    else { out.push(cur); cur=r; }
+  }
+  out.push(cur); return out;
+}
+function rangesToLabel(rs){
+  return rs.map(r => r.start===r.end ? `${r.start}` : `${r.start}–${r.end}`).join(", ");
+}
+
+// (optional) call this after a successful submit to clear tracking
+function resetTracking(){
+  events = 0;
+  ranges.length = 0;
+}
+
+
 
   
 // ---------------------------
@@ -196,12 +255,18 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // SUBMIT CODE
 // ---------------------------
 
-document.getElementById("submitBtn").addEventListener("click", submitCode);
+
 
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
   if (!first || !last) { alert("Enter first and last name before submitting."); return; }
+
+  
+  const totalLines = editor.session.getDocument().getLength();
+  const merged = mergeRanges(ranges, totalLines);
+  let pCount = 0; merged.forEach(r => pastedCount += (r.end - r.start + 1));
+  const pPercent = totalLines > 0 ? Math.round((pastedCount / totalLines) * 100) + '%' : '0%';
 
   const body = new URLSearchParams({
     token: SUBMIT_TOKEN,
@@ -210,7 +275,11 @@ async function submitCode() {
     code: editor.getValue(),
     userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
-    pastedLines: pastedRanges.join(", ")
+    pLines: rangesToLabel(merged),
+    pLineCount: String(pCount),   // NEW
+    pPercent,                     // existing from earlier
+    events: String(events)        // NEW
+
   });
 
   try {
@@ -222,9 +291,11 @@ async function submitCode() {
     });
     if (!resp.ok) throw new Error("Submit failed: " + resp.status);
     alert("Submission sent.");
+    resetTracking();
   } catch (err) {
     alert("Error submitting code. Tell your teacher.\n" + err);
   }
+  document.getElementById("submitBtn").addEventListener("click", submitCode);
 }
 
 /*
@@ -244,7 +315,7 @@ async function submitCode() {
     code: editor.getValue(),          // Ace editor content
     userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
-    pastedLines: pastedRanges.join(", ")   // OPTIONAL FLAGGING
+    pLines: ranges.join(", ")   // OPTIONAL FLAGGING
   };
 
   
