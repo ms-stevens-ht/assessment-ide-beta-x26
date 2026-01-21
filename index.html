@@ -1,6 +1,6 @@
 
 <!--1-20-2026-->
-<!--9:52-->
+<!--10:12-->
 
 
 <!DOCTYPE html>
@@ -265,8 +265,8 @@ async function submitCode() {
   
   const totalLines = editor.session.getDocument().getLength();
   const merged = mergeRanges(ranges, totalLines);
-  let pCount = 0; merged.forEach(r => pastedCount += (r.end - r.start + 1));
-  const pPercent = totalLines > 0 ? Math.round((pastedCount / totalLines) * 100) + '%' : '0%';
+  let pCount = 0; merged.forEach(r => pCount += (r.end - r.start + 1));
+  const pPercent = totalLines > 0 ? Math.round((pCount / totalLines) * 100) + '%' : '0%';
 
   const body = new URLSearchParams({
     token: SUBMIT_TOKEN,
