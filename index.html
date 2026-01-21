@@ -1,6 +1,6 @@
 
 <!--1-21-2026-->
-<!--8:27am-->
+<!--8:41 am-->
 
 
 <!DOCTYPE html>
@@ -318,7 +318,13 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // ---------------------------
 // SUBMIT CODE
 // ---------------------------
-document.getElementById("submitBtn").addEventListener("click", submitCode);
+//document.getElementById("submitBtn").addEventListener("click", submitCode);
+
+  
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("submitBtn").addEventListener("click", submitCode);
+});
+
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
@@ -328,7 +334,7 @@ async function submitCode() {
   const merged = mergeRanges(rngList, total);
 
   let lnCnt = 0;
-  merged.forEach(r => { lnCnt += (r.end - r.start + 1); });
+  merged.forEach(r => lnCnt += (r.end - r.start + 1));
   const lnPct = total > 0 ? Math.round((lnCnt / total) * 100) + '%' : '0%';
 
   const body = new URLSearchParams({
