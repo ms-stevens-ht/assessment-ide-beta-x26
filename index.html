@@ -1,6 +1,6 @@
 
 <!--1-21-2026-->
-<!--8:41 am-->
+<!--8:55 am-->
 
 
 <!DOCTYPE html>
@@ -120,6 +120,196 @@ print("Hello world!")</div>
 
 <script>
 
+  
+<script>
+const SUBMIT_URL   = "https://script.google.com/macros/s/AKfycbwP9SwZRk6ZKfKxk8ss_OZ_3THvBmZHYTeNTqeLu4mDwY8Lwj6HU1NUO1ibXth2nN0tWA/exec";
+const SUBMIT_TOKEN = "kjZEukzL1WxS8NtQHRuB";
+
+// ---------------------------
+// ACE EDITOR SETUP
+// ---------------------------
+const editor = ace.edit("editor");
+editor.setTheme("ace/theme/textmate");
+editor.session.setMode("ace/mode/python");
+editor.setOptions({
+  fontSize: "16px",
+  showPrintMargin: false,
+  useSoftTabs: true,
+  tabSize: 4,
+});
+
+// ---------------------------
+// UNIVERSAL PASTE DETECTION FOR ACE
+// ---------------------------
+let evCt = 0;     
+let rngList = []; 
+
+function rec(startRowZero, lines) {
+  const start = startRowZero + 1;
+  const end   = start + Math.max(1, lines) - 1;
+  rngList.push({ start, end });
+  evCt++;
+}
+
+// 1) Ace native paste
+editor.on("paste", function(text) {
+  const range = editor.getSelectionRange();
+  const lines = (text || "").split(/\r?\n/).length;
+  rec(range.start.row, lines);
+});
+
+// 2) Hidden textareas
+(function attachToAllInputs() {
+  const inputs = editor.container.querySelectorAll("textarea, input");
+  inputs.forEach(el => {
+    el.addEventListener("paste", (e) => {
+      const txt = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+      const lines = txt.split(/\r?\n/).length;
+      const range = editor.getSelectionRange();
+      rec(range.start.row, lines);
+    });
+  });
+})();
+
+// 3) Hotkey fallback
+let downAt = 0;
+editor.container.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v") {
+    downAt = Date.now();
+  }
+});
+
+editor.session.on("change", function(delta) {
+  if (downAt && (Date.now() - downAt < 400) && delta.action === "insert") {
+    const lineCount = delta.lines.length;
+    const firstLen  = delta.lines[0]?.length || 0;
+    if (lineCount > 1 || firstLen >= 3) {
+      rec(delta.start.row, lineCount);
+    }
+    downAt = 0;
+  }
+});
+
+function mergeRanges(ranges, maxLine){
+  if (!ranges.length) return [];
+  const arr = ranges
+    .map(r => ({
+      start: Math.max(1, Math.min(r.start, maxLine)),
+      end:   Math.max(1, Math.min(r.end,   maxLine))
+    }))
+    .sort((a,b) => a.start - b.start);
+  const out = [];
+  let cur = arr[0];
+  for (let i=1;i<arr.length;i++){
+    const r = arr[i];
+    if (r.start <= cur.end + 1) cur.end = Math.max(cur.end, r.end);
+    else { out.push(cur); cur = r; }
+  }
+  out.push(cur);
+  return out;
+}
+
+function labelRanges(rs){
+  return rs.map(r => r.start===r.end ? `${r.start}` : `${r.start}–${r.end}`).join(", ");
+}
+
+function resetTrack(){
+  evCt = 0;
+  rngList.length = 0;
+}
+
+// ---------------------------
+// PYODIDE SETUP
+// ---------------------------
+let pyReady = loadPyodide({
+  stdout: msg => document.getElementById("output").textContent += msg + "\n",
+  stderr: msg => document.getElementById("output").textContent += "[error] " + msg + "\n"
+}).then(py => {
+  document.getElementById("offlineFlag").textContent = "ready";
+  return py;
+});
+
+// ---------------------------
+// RUN CODE
+// ---------------------------
+async function runCode() {
+  const out = document.getElementById("output");
+  out.textContent = "Running...\n\n";
+
+  const code = editor.getValue();
+  const py = await pyReady;
+
+  try {
+    const result = await py.runPythonAsync(code);
+    if (result !== undefined)
+      out.textContent += result + "\n";
+  } catch (err) {
+    out.textContent += "[error] " + err + "\n";
+  }
+}
+
+document.getElementById("runBtn").addEventListener("click", runCode);
+
+// ---------------------------
+// SUBMIT CODE
+// ---------------------------
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("submitBtn").addEventListener("click", submitCode);
+});
+
+async function submitCode() {
+  console.log("Submit handler entered");
+
+  const first = document.getElementById("firstName").value.trim();
+  const last  = document.getElementById("lastName").value.trim();
+  if (!first || !last) {
+    alert("Enter first and last name before submitting.");
+    return;
+  }
+
+  const total = editor.session.getDocument().getLength();
+  const merged = mergeRanges(rngList, total);
+
+  let lnCnt = 0;
+  merged.forEach(r => { lnCnt += (r.end - r.start + 1); });
+
+  const lnPct = total > 0 ? Math.round((lnCnt / total) * 100) + '%' : '0%';
+
+  const body = new URLSearchParams({
+    token: SUBMIT_TOKEN,
+    firstName: first,
+    lastName:  last,
+    code: editor.getValue(),
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+    pastedLines: labelRanges(merged),
+    pastedLineCount: String(lnCnt),
+    pastedPercent: lnPct,
+    pasteEvents: String(evCt)
+  });
+
+  try {
+    console.log("Submitting to:", SUBMIT_URL);
+
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+      body,
+      cache: "no-store"
+    });
+
+    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+
+    alert("Submission sent.");
+    resetTrack();
+
+  } catch(err){
+    alert("Error submitting code.\n" + err);
+  }
+}
+
+
+/*
   
 const SUBMIT_URL   = "https://script.google.com/macros/s/AKfycbwP9SwZRk6ZKfKxk8ss_OZ_3THvBmZHYTeNTqeLu4mDwY8Lwj6HU1NUO1ibXth2nN0tWA/exec";
 const SUBMIT_TOKEN = "kjZEukzL1WxS8NtQHRuB";
@@ -481,7 +671,7 @@ async function submitCode() {
 */
 
 
-
+*/
   
 </script>
 
