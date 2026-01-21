@@ -1,6 +1,6 @@
 
 <!--1-20-2026-->
-<!--9:47-->
+<!--9:52-->
 
 
 <!DOCTYPE html>
@@ -256,7 +256,7 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // ---------------------------
 
 
-
+document.getElementById("submitBtn").addEventListener("click", submitCode);
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
@@ -295,7 +295,7 @@ async function submitCode() {
   } catch (err) {
     alert("Error submitting code. Tell your teacher.\n" + err);
   }
-  document.getElementById("submitBtn").addEventListener("click", submitCode);
+  
 }
 
 /*
