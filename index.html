@@ -1,5 +1,6 @@
+
 <!--1-20-2026-->
-<!--6:46 pm revert back-->
+<!--6:30 pm revert-->
 
 
 <!DOCTYPE html>
@@ -140,44 +141,6 @@ editor.setOptions({
 // ---------------------------
 // CP DETECTION
 // ---------------------------
-
-let pastedRanges = []; // array of {start,end}
-
-editor.on("paste", function(text){
-
-  e.preventDefault();
-  document.getElementById("paste-warning").textContent = "Pasting is disabled!";
-  const range = editor.getSelectionRange();
-  const start = range.start.row + 1;           // 1-based line
-  const lines = text.split(/\r?\n/).length;
-  const end   = start + lines - 1;
-  pastedRanges.push({ start, end });
-});
-
-function mergeRanges(ranges, maxLine){
-  if (!ranges || ranges.length === 0) return [];
-  const arr = ranges
-    .map(r => ({
-      start: Math.max(1, Math.min(r.start, maxLine)),
-      end  : Math.max(1, Math.min(r.end  , maxLine))
-    }))
-    .sort((a,b) => a.start - b.start);
-
-  const out = [];
-  let cur = arr[0];
-  for (let i=1;i<arr.length;i++){
-    const r = arr[i];
-    if (r.start <= cur.end + 1) cur.end = Math.max(cur.end, r.end);
-    else { out.push(cur); cur = r; }
-  }
-  out.push(cur);
-  return out;
-}
-function rangesToLabel(rs){
-  return rs.map(r => r.start===r.end ? `${r.start}` : `${r.start}–${r.end}`).join(", ");
-}
-
-/*  
 let pastedRanges = [];
 
 editor.on("paste", function(text) {
@@ -195,7 +158,7 @@ editor.on("paste", function(text) {
     pastedRanges.push(`${startLine}–${endLine}`);
   }
 });
-/*
+
   
 // ---------------------------
 // PYODIDE SETUP
@@ -240,14 +203,6 @@ async function submitCode() {
   const last  = document.getElementById("lastName").value.trim();
   if (!first || !last) { alert("Enter first and last name before submitting."); return; }
 
-  
-// compute paste % against current document
-  const totalLines = editor.session.getDocument().getLength();
-  const merged = mergeRanges(pastedRanges, totalLines);
-  let pastedCount = 0; merged.forEach(r => pastedCount += (r.end - r.start + 1));
-  const pastedPercent = totalLines > 0 ? Math.round((pastedCount/totalLines)*100) + "%" : "0%";
-
-
   const body = new URLSearchParams({
     token: SUBMIT_TOKEN,
     firstName: first,
@@ -255,9 +210,7 @@ async function submitCode() {
     code: editor.getValue(),
     userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
-    pastedLines: rangesToLabel(merged),
-    pastedPercent
-
+    pastedLines: pastedRanges.join(", ")
   });
 
   try {
