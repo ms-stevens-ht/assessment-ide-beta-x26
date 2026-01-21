@@ -141,8 +141,72 @@ editor.setOptions({
 // ---------------------------
 // CP DETECTION
 //
-  
 
+// ---------------------------
+// UNIVERSAL P DETECTION FOR ACE
+// ---------------------------
+
+// obfuscated local vars (student won’t understand these)
+let evCt = 0;             // number of paste events
+let rngList = [];         // array of {start, end}
+
+// helper
+function rec(startRowZero, lines) {
+  const start = startRowZero + 1;
+  const end = start + Math.max(1, lines) - 1;
+  rngList.push({ start, end });
+  evCt++;
+}
+
+// ACE native paste (works most places)
+editor.on("paste", function(text) {
+  const range = editor.getSelectionRange();
+  const lines = String(text || "").split(/\r?\n/).length;
+  rec(range.start.row, lines);
+});
+
+// ACE hidden text input(s)
+(function attachToAllInputs() {
+  const inputs = editor.container.querySelectorAll("textarea, input");
+  inputs.forEach(el => {
+    el.addEventListener("paste", (e) => {
+      const txt = (e.clipboardData || window.clipboardData)?.getData("text") || "";
+      const lines = txt.split(/\r?\n/).length;
+      const range = editor.getSelectionRange();
+      rec(range.start.row, lines);
+    });
+  });
+})();
+
+  // fallback #1 — paste hotkey heuristic
+  let downAt = 0;
+  editor.container.addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key.toLowerCase() === "v")) {
+      downAt = Date.now();
+    }
+  });
+  
+  // fallback #2 — detect sudden insertion after hotkey
+  editor.session.on("change", function(delta) {
+    if (downAt && (Date.now() - downAt < 400) && delta.action === "insert") {
+      const lineCount = delta.lines.length;
+      const firstLen  = delta.lines[0]?.length || 0;
+      if (lineCount > 1 || firstLen >= 3) {
+        rec(delta.start.row, lineCount);
+      }
+      downAt = 0;
+    }
+  });
+  
+  // OPTIONAL: reset after submit
+  function resetTrack() {
+    evCt = 0;
+    rngList.length = 0;
+  }
+
+
+  
+/*
 // --- robust  tracking for Ace ---
 let events = 0;            // count how many paste actions happened
 let ranges = [];          // array of {start, end}, 1-based lines
@@ -216,7 +280,7 @@ function resetTracking(){
   ranges.length = 0;
 }
 
-
+*/
 
   
 // ---------------------------
@@ -255,7 +319,49 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // SUBMIT CODE
 // ---------------------------
 
+async function submitCode() {
+  const first = document.getElementById("firstName").value.trim();
+  const last  = document.getElementById("lastName").value.trim();
+  if (!first || !last) { alert("Enter first and last name before submitting."); return; }
 
+  const total = editor.session.getDocument().getLength();
+  const merged = mergeRanges(rngList, total);
+
+  let lnCnt = 0;
+  merged.forEach(r => { lnCnt += (r.end - r.start + 1); });
+  const lnPct = total > 0 ? Math.round((lnCnt / total) * 100) + '%' : '0%';
+
+  const body = new URLSearchParams({
+    token: SUBMIT_TOKEN,
+    firstName: first,
+    lastName: last,
+    code: editor.getValue(),
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+
+    // backend keys
+    pastedLines: labelRanges(merged),
+    pastedLineCount: String(lnCnt),
+    pastedPercent: lnPct,
+    pasteEvents: String(evCt)
+  });
+
+  try {
+    const resp = await fetch(SUBMIT_URL, {
+      method: "POST",
+      headers: { "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8" },
+      body,
+      cache: "no-store"
+    });
+    if (!resp.ok) throw new Error("Submit failed: " + resp.status);
+    alert("Submission sent.");
+    resetTrack();
+  } catch(err){
+    alert("Error submitting code.\n" + err);
+  }
+}
+
+/* this was the last workihng version
 document.getElementById("submitBtn").addEventListener("click", submitCode);
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
@@ -297,7 +403,7 @@ async function submitCode() {
   }
   
 }
-
+End of last working version */
 /*
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
