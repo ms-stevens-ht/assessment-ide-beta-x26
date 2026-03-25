@@ -1,5 +1,5 @@
 <!--03-25-2026-->
-<!--Update p disabiling to work on Mac-->
+<!--Update p disabiling 8:39am-->
 
 
 <!DOCTYPE html>
@@ -140,8 +140,54 @@ editor.setOptions({
 // ---------------------------
 // CP DETECTION
 //
-  
 
+// ===== Integrity tracking =====
+let pasteCount = 0;
+let suspiciousInsertions = [];
+
+// Track content length changes
+let lastValue = editor.value;
+let lastTime = Date.now();
+
+// 1. BEST: beforeinput (reliable across Mac/Windows)
+editor.addEventListener("beforeinput", (e) => {
+  if (e.inputType === "insertFromPaste") {
+    pasteCount++;
+  }
+
+  if (e.inputType === "insertFromPaste" || e.inputType === "insertFromDrop") {
+    // optional: block paste
+    e.preventDefault();
+  }
+});
+
+// 2. Fallback paste detection
+editor.addEventListener("paste", () => {
+  pasteCount++;
+});
+
+// 3. Suspicious insertion detection
+editor.addEventListener("input", () => {
+  const now = Date.now();
+  const newValue = editor.value;
+
+  const lengthDiff = newValue.length - lastValue.length;
+  const timeDiff = now - lastTime;
+
+  // Heuristic: large change very fast = likely paste
+  if (lengthDiff > 20 && timeDiff < 50) {
+    suspiciousInsertions.push({
+      charsAdded: lengthDiff,
+      timeDiff: timeDiff,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  lastValue = newValue;
+  lastTime = now;
+});
+  
+/*
 // --- robust  tracking for Ace ---
 let events = 0;            // count how many paste actions happened
 let ranges = [];          // array of {start, end}, 1-based lines
@@ -243,7 +289,7 @@ function resetTracking(){
 
 
 
-  
+*/
 // ---------------------------
 // PYODIDE SETUP
 // ---------------------------
@@ -279,12 +325,53 @@ document.getElementById("runBtn").addEventListener("click", runCode);
 // ---------------------------
 // SUBMIT CODE
 // ---------------------------
+// Paste & suspicious insertion tracking
+let pasteCount = 0;
+let suspiciousInsertions = [];
 
+// Track content changes
+let lastValue = editor.getValue();
+let lastTime = Date.now();
+
+editor.addEventListener("beforeinput", (e) => {
+  if (e.inputType === "insertFromPaste" || e.inputType === "insertFromDrop") {
+    pasteCount++;
+    // Optional: block paste entirely
+    e.preventDefault();
+  }
+});
+
+editor.addEventListener("paste", () => {
+  pasteCount++;
+});
+
+editor.addEventListener("input", () => {
+  const now = Date.now();
+  const newValue = editor.getValue();
+
+  const lengthDiff = newValue.length - lastValue.length;
+  const timeDiff = now - lastTime;
+
+  if (lengthDiff > 20 && timeDiff < 50) {  // heuristic: fast large insert = suspicious
+    suspiciousInsertions.push({
+      charsAdded: lengthDiff,
+      timeDiff: timeDiff,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  lastValue = newValue;
+  lastTime = now;
+});
 
 document.getElementById("submitBtn").addEventListener("click", submitCode);
 async function submitCode() {
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
+
+  // Paste & suspicious insertion tracking
+
+  
   if (!first || !last) { alert("Enter first and last name before submitting."); return; }
 
   
@@ -301,10 +388,20 @@ async function submitCode() {
     userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
     pLines: rangesToLabel(merged),
+    pLineCount: String(pCount),
+    pPercent,                     // existing
+
+    events: String(events),       // existing
+
+    pasteCount: String(pasteCount), // NEW
+    suspiciousInsertions: JSON.stringify(suspiciousInsertions) // NEW
+      
+    /*
+    pLines: rangesToLabel(merged),
     pLineCount: String(pCount),   // NEW
     pPercent,                     // existing from earlier
     events: String(events)        // NEW
-
+/*
   });
 
   try {
