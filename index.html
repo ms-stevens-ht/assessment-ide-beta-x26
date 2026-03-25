@@ -111,6 +111,19 @@ print("Hello world!")</div>
   </section>
 </div>
 
+//NEW Debugger
+  <!-- Add this inside #container -->
+<div id="debugger" style="grid-column:1 / 2; grid-row:2 / 3; background:#111; color:#0f0; overflow:auto; padding:8px; font-family:monospace;">
+  <strong>Debugger:</strong>
+  <div id="debugOutput"></div>
+  <div style="margin-top:4px;">
+    <button id="stepBtn">Step ▶</button>
+    <button id="continueBtn">Continue ➤</button>
+    <button id="resetDbgBtn">Reset</button>
+  </div>
+</div>
+  //end of new
+  
 <!-- ⭐ LOCAL ACE EDITOR FILES (REQUIRED) -->
 <script src="./ace/ace.js"></script>
 <script src="./ace/mode-python.js"></script>
@@ -298,7 +311,91 @@ async function runCode() {
 }
 
 document.getElementById("runBtn").addEventListener("click", runCode);
+  
+// ---------------------------
+// DEBUG CODE
+// ---------------------------
 
+const debugOutput = document.getElementById("debugOutput");
+
+let debugPyReady = null;
+let currentCode = "";
+let debugState = null;  // holds pdb instance
+
+async function startDebug() {
+  currentCode = editor.getValue();
+  const py = await pyReady;
+
+  // Wrap user code in pdb
+  const debugScript = `
+import pdb
+import sys
+from io import StringIO
+
+# capture prints
+debug_output = StringIO()
+sys.stdout = debug_output
+sys.stderr = debug_output
+
+user_code = """${currentCode.replace(/`/g, "\\`")}"""
+pdb_inst = pdb.Pdb()
+pdb_inst.reset()
+exec(user_code, {'__name__':'__main__'})
+debug_output.getvalue()
+  `;
+
+  try {
+    const result = await py.runPythonAsync(debugScript);
+    debugOutput.textContent = result || "";
+  } catch (err) {
+    debugOutput.textContent = "[debug error] " + err;
+  }
+}
+
+// Step function: runs one statement at a time
+async function stepDebug() {
+  if (!debugPyReady) debugPyReady = await pyReady;
+
+  const py = debugPyReady;
+
+  if (!debugState) {
+    // initialize pdb instance
+    const initScript = `
+import pdb, sys
+from io import StringIO
+debug_output = StringIO()
+sys.stdout = debug_output
+sys.stderr = debug_output
+pdb_inst = pdb.Pdb()
+pdb_inst.reset()
+pdb_inst
+    `;
+    debugState = await py.runPythonAsync(initScript);
+  }
+
+  try {
+    // Step a single statement
+    const stepResult = await py.runPythonAsync(`
+pdb_inst.set_trace()
+debug_output.getvalue()
+    `);
+    debugOutput.textContent = stepResult;
+  } catch (err) {
+    debugOutput.textContent += "\n[debug error] " + err;
+  }
+}
+
+// Reset debugger
+function resetDebugger() {
+  debugOutput.textContent = "";
+  debugState = null;
+}
+
+document.getElementById("stepBtn").addEventListener("click", stepDebug);
+document.getElementById("continueBtn").addEventListener("click", startDebug);
+document.getElementById("resetDbgBtn").addEventListener("click", resetDebugger);
+//end of DEBUG
+  
 // ---------------------------
 // SUBMIT CODE
 // ---------------------------
