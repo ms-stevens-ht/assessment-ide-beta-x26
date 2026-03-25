@@ -1,5 +1,5 @@
-<!--1-21-2026-->
-<!--March 24, 2026 testing p disabiling-->
+<!--03-25-2026-->
+<!--Update p disabiling to work on Mac-->
 
 
 <!DOCTYPE html>
@@ -149,12 +149,28 @@ let ranges = [];          // array of {start, end}, 1-based lines
 
 //NEW Here
   
-editor.addEventListener("keydown", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key === "v") e.preventDefault();
-});
-editor.addEventListener("paste", (e) => e.preventDefault());
-editor.addEventListener("drop", (e) => e.preventDefault());
+//editor.addEventListener("keydown", (e) => {
+//  if ((e.ctrlKey || e.metaKey) && e.key === "v") e.preventDefault();
+//});
+//editor.addEventListener("paste", (e) => e.preventDefault());
+//editor.addEventListener("drop", (e) => e.preventDefault());
   //new ends
+
+//new for March 25
+  // Block keyboard paste
+editor.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.code === "KeyV") {
+    e.preventDefault();
+  }
+});
+
+// Block clipboard paste event
+editor.addEventListener("paste", (e) => e.preventDefault());
+
+// Block drag/drop
+editor.addEventListener("drop", (e) => e.preventDefault());
+
+  //end of new
   
 function recordRange(startRowZeroBased, numLines) {
   const start = startRowZeroBased + 1;                // convert to 1-based
