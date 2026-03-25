@@ -1,5 +1,5 @@
-<!--3/25/2026 9:50am-->
-<!--Update functional console for user input--> 
+<!--3/25/2026 9:55am-->
+<!--Update layout--> 
 
 
 <!DOCTYPE html>
@@ -35,37 +35,25 @@ html, body {
 #container {
   display:grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto 1fr 1fr;
-  gap:4px;
+  grid-template-rows: 1fr 1fr;
   height: calc(100vh - 40px);
-  padding:2px;
 }
 
-#editor { grid-column:1; grid-row:1 / span 3; width:100%; height:100%; }
+#editor { grid-column:1; grid-row:1 / span 2; width:100%; height:100%; }
 
-#console { 
+#output {
   grid-column:2; grid-row:1; background:#0c0c0c; color:var(--out);
-  padding:6px; overflow:auto; white-space:pre-wrap; height:50%;
-}
-
-#consoleInput {
-  grid-column:2; grid-row:2; width:100%; box-sizing:border-box;
-  background:#0c0c0c; color:var(--out); border:none; padding:4px;
-}
-
-#debugger {
-  grid-column:2; grid-row:3; background:#111; color:#fff;
-  padding:6px; overflow:auto;
+  padding:6px; overflow:auto; white-space:pre-wrap;
 }
 
 #questionPane {
-  position:absolute; top:0; right:0; width:40%; height:100%;
-  background:#0d0d0d; display:flex; flex-direction:column; border-left:1px solid #333;
+  grid-column:2; grid-row:2; background:#0d0d0d; overflow:hidden; border-top:1px solid #333; display:flex; flex-direction:column;
 }
 #questionPane header { padding:6px 10px; background:#111; color:white; }
-#questionPane iframe { flex:1; border:none; }
+#questionPane iframe { flex:1; border:none; width:100%; }
 
 button { cursor:pointer; }
+input { color:#000; }
 </style>
 </head>
 <body oncontextmenu="return false">
@@ -84,19 +72,19 @@ button { cursor:pointer; }
 </div>
 
 <div id="container">
-  <div id="editor"># Python example\nprint("Hello world!")</div>
-  <pre id="console"></pre>
-  <input type="text" id="consoleInput" placeholder="Type here...">
-  <div id="debugger"><strong>Debugger:</strong><pre id="debugVars"></pre></div>
-</div>
+  <div id="editor"># Python example
+print("Hello world!")</div>
 
-<section id="questionPane">
-  <header>
-    <strong>Question:</strong>
-    <span id="qStatus" style="opacity:.7; font-size:12px;"></span>
-  </header>
-  <iframe id="questionFrame" src="./questions/example_question.pdf" referrerpolicy="no-referrer"></iframe>
-</section>
+  <pre id="output"></pre>
+
+  <section id="questionPane">
+    <header>
+      <strong>Question:</strong>
+      <span id="qStatus" style="opacity:.7; font-size:12px;"></span>
+    </header>
+    <iframe id="questionFrame" src="./questions/example_question.pdf" referrerpolicy="no-referrer"></iframe>
+  </section>
+</div>
 
 <!-- ACE Editor -->
 <script src="./ace/ace.js"></script>
@@ -107,39 +95,24 @@ button { cursor:pointer; }
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
 <script>
-// ACE Editor
+// ACE Editor setup
 const editor = ace.edit("editor");
 editor.setTheme("ace/theme/textmate");
 editor.session.setMode("ace/mode/python");
 editor.setOptions({ fontSize:"16px", showPrintMargin:false, useSoftTabs:true, tabSize:4 });
 
-// Console + input
-const consoleEl = document.getElementById("console");
-const consoleInput = document.getElementById("consoleInput");
-const debugEl = document.getElementById("debugVars");
-let inputResolve=null, inputQueue=[];
-
-function writeConsole(text){ consoleEl.textContent += text; consoleEl.scrollTop=consoleEl.scrollHeight; }
-
-consoleInput.addEventListener("keydown", e=>{
-  if(e.key==="Enter"){
-    e.preventDefault();
-    const value = consoleInput.value;
-    writeConsole(value + "\n");
-    consoleInput.value="";
-    if(inputResolve){ inputResolve(value); inputResolve=null; }
-    else { inputQueue.push(value); }
-  }
-});
-
-consoleEl.addEventListener("click", ()=>consoleInput.focus());
-
-async function awaitInputJS(){ if(inputQueue.length>0) return inputQueue.shift(); return new Promise(resolve=>inputResolve=resolve); }
+// Console handling
+const outputEl = document.getElementById("output");
+function writeConsole(msg){ outputEl.textContent += msg; outputEl.scrollTop = outputEl.scrollHeight; }
 
 // Pyodide setup
-let pyReady = loadPyodide({ stdout: msg=>writeConsole(msg+"\n"), stderr: msg=>writeConsole("[error] "+msg+"\n") })
-.then(async py=>{
+let pyReady = loadPyodide({
+  stdout: msg => writeConsole(msg+"\n"),
+  stderr: msg => writeConsole("[error] "+msg+"\n")
+}).then(async py=>{
   document.getElementById("offlineFlag").textContent="ready";
+
+  // Override input to work with console
   await py.runPythonAsync(`
 import builtins, asyncio, js
 def input(prompt=""):
@@ -150,19 +123,41 @@ builtins.input=input
   return py;
 });
 
-// Run code
-async function runCode(){
+// Input queue for console
+let inputResolve = null, inputQueue = [];
+window.awaitInputJS = async function(){
+  if(inputQueue.length>0) return inputQueue.shift();
+  return new Promise(resolve => inputResolve=resolve);
+};
+outputEl.addEventListener("click", ()=>consoleInput.focus());
+const consoleInput = document.createElement("input");
+consoleInput.type="text"; consoleInput.placeholder="Type here...";
+consoleInput.style.width="100%";
+consoleInput.style.boxSizing="border-box";
+outputEl.parentNode.insertBefore(consoleInput, outputEl.nextSibling);
+
+consoleInput.addEventListener("keydown", e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    const val = consoleInput.value + "\n";
+    writeConsole(val);
+    consoleInput.value="";
+    if(inputResolve){ inputResolve(val.trim()); inputResolve=null; }
+    else inputQueue.push(val.trim());
+  }
+});
+
+// Run button
+document.getElementById("runBtn").addEventListener("click", async()=>{
   const py = await pyReady;
-  consoleEl.textContent="Running...\n\n";
-  debugEl.textContent="";
-  try{
-    const code = editor.getValue();
-    await py.runPythonAsync(code);
-    const globals = await py.runPythonAsync("dict(globals())");
-    debugEl.textContent = JSON.stringify(Object.fromEntries(Object.entries(globals)),null,2);
-  }catch(err){ writeConsole("[error] "+err+"\n"); }
-}
-document.getElementById("runBtn").addEventListener("click", runCode);
+  outputEl.textContent = "Running...\n\n";
+  try { await py.runPythonAsync(editor.getValue()); }
+  catch(err){ writeConsole("[error] "+err+"\n"); }
+});
+
+// Submit button placeholder
+document.getElementById("submitBtn").addEventListener("click", ()=>alert("Submit clicked"));
 </script>
+
 </body>
 </html>
