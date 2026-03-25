@@ -1,6 +1,6 @@
 <!--03-25-2026-->
 <!--Update p disabiling to work on Mac-->
-<!--back to before-->
+<!--try again 9am-->
 
 
 <!DOCTYPE html>
@@ -149,6 +149,27 @@ let ranges = [];          // array of {start, end}, 1-based lines
 
 
 //NEW Here
+const aceInput = editor.textInput.getElement();
+
+// Block hotkey paste (Ctrl+V / Cmd+V)
+aceInput.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.code === "KeyV") {
+    e.preventDefault();
+    pasteCount++; // still track the attempt
+    console.log("Blocked paste shortcut");
+  }
+});
+
+// Block context menu paste (already works)
+aceInput.addEventListener("paste", (e) => {
+  e.preventDefault();
+  pasteCount++;
+  console.log("Blocked paste event");
+});
+
+// Optional: block drag/drop
+aceInput.addEventListener("drop", (e) => e.preventDefault());
+
   
 //editor.addEventListener("keydown", (e) => {
 //  if ((e.ctrlKey || e.metaKey) && e.key === "v") e.preventDefault();
