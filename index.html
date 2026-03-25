@@ -1,119 +1,124 @@
-<!--3/25/2026 9:59am-->
-<!--Handle user input--> 
+<!--3/25/2026 10:10 am-->
+<!--Still fixing user input--> 
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Exam-Safe Python IDE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam‑Safe Python IDE</title>
 
 <style>
-  :root {
-    --bg:#1e1e1e;
-    --panel:#2d2d2d;
-    --accent:#007acc;
-    --txt:#eaeaea;
-    --out:#00ff99;
-  }
+:root {
+  --bg:#1e1e1e;
+  --panel:#2d2d2d;
+  --accent:#007acc;
+  --txt:#eaeaea;
+  --out:#00ff99;
+}
 
-  html, body {
-    height:100%;
-    margin:0;
-    background:#1e1e1e;
-    color:var(--txt);
-    font-family:Roboto,Arial,sans-serif;
-    overflow:hidden;
-  }
+html, body {
+  height:100%;
+  margin:0;
+  font-family: "Roboto", Arial, sans-serif;
+  background: var(--bg);
+  overflow:hidden;
+  color: var(--txt);
+}
 
-  #topbar {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:12px;
-    background:var(--panel);
-    padding:8px 14px;
-    border-radius:4px;
-    font-size:15px;
-  }
+#topbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:8px 14px;
+  background:var(--panel);
+  border-radius:4px;
+  font-size:15px;
+}
 
-  #container {
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 40% 60%;
-    height: calc(100vh - 56px);
-  }
+#container {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  height: calc(100vh - 48px);
+  gap: 4px;
+}
 
-  #editor {
-    grid-column:1 / 2;
-    grid-row:1 / 3;
-    width:100%;
-    height:100%;
-  }
+#editor {
+  grid-column: 1 / 2;
+  grid-row: 1 / 3;
+  width:100%;
+  height:100%;
+}
 
-  #rightPane {
-    grid-column:2 / 3;
-    grid-row:1 / 2;
-    display:flex;
-    flex-direction:column;
-  }
+#rightPane {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  display:flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
-  #buttons {
-    display:flex;
-    gap:8px;
-    margin-bottom:4px;
-  }
+#buttons {
+  display:flex;
+  justify-content:flex-end;
+  gap: 6px;
+  padding:4px;
+}
 
-  #output {
-    flex:1;
-    background:#0c0c0c;
-    color:var(--out);
-    padding:8px;
-    overflow:auto;
-    white-space:pre-wrap;
-    font-family:monospace;
-  }
+#console {
+  background:#0c0c0c;
+  color: var(--out);
+  font-family: monospace;
+  padding:8px;
+  height:200px;
+  overflow:auto;
+  white-space: pre-wrap;
+  display:flex;
+  flex-direction: column;
+}
 
-  #consoleInput {
-    width:100%;
-    box-sizing:border-box;
-    padding:4px 6px;
-    background:#222;
-    color:var(--txt);
-    border:none;
-    outline:none;
-    font-family:monospace;
-  }
+#consoleOutput {
+  flex:1;
+  overflow:auto;
+}
 
-  #questionPane {
-    grid-column:2 / 3;
-    grid-row:2 / 3;
-    background:#0d0d0d;
-    border-top:1px solid #333;
-    overflow:hidden;
-  }
+#consoleInput {
+  background:#111;
+  color: var(--out);
+  border:none;
+  padding:4px;
+  font-family: monospace;
+}
 
-  #questionPane iframe {
-    width:100%;
-    height: calc(100% - 30px);
-    border:none;
-  }
+#questionPane {
+  grid-column:2 / 3;
+  grid-row:2 / 3;
+  background:#0d0d0d;
+  border-top:1px solid #333;
+  overflow:hidden;
+}
+
+#questionPane iframe {
+  width:100%;
+  height:100%;
+  border:none;
+}
 </style>
 </head>
+
 <body oncontextmenu="return false">
 
 <div id="topbar">
-  <div class="left">
+  <div>
     <strong>Exam IDE</strong>
     <label>First: <input id="firstName"></label>
     <label>Last: <input id="lastName"></label>
   </div>
-  <div class="right">
-    <span>Offline-ready: <span id="offlineFlag">warming…</span></span>
-    <div id="buttons">
-      <button id="runBtn">Run ▶</button>
-      <button id="submitBtn">Submit</button>
-    </div>
+  <div id="buttons">
+    <span>Offline: <span id="offlineFlag">warming…</span></span>
+    <button id="runBtn">Run ▶</button>
+    <button id="submitBtn">Submit</button>
   </div>
 </div>
 
@@ -122,8 +127,10 @@
 print("Hello world!")</div>
 
   <div id="rightPane">
-    <pre id="output"></pre>
-    <input id="consoleInput" placeholder="Type here for input..." />
+    <div id="console">
+      <div id="consoleOutput"></div>
+      <input id="consoleInput" placeholder="Type input here" disabled>
+    </div>
   </div>
 
   <section id="questionPane">
@@ -135,180 +142,126 @@ print("Hello world!")</div>
   </section>
 </div>
 
-<!-- ACE -->
+<!-- Ace Editor -->
 <script src="./ace/ace.js"></script>
 <script src="./ace/mode-python.js"></script>
 <script src="./ace/theme-textmate.js"></script>
 
-<!-- PYODIDE -->
+<!-- Pyodide -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
 <script>
-const SUBMIT_URL   = "https://script.google.com/macros/s/YOUR_SCRIPT/exec";
-const SUBMIT_TOKEN = "YOUR_TOKEN";
-
 // ---------------------------
-// ACE EDITOR
+// IDE SETUP
 // ---------------------------
 const editor = ace.edit("editor");
 editor.setTheme("ace/theme/textmate");
 editor.session.setMode("ace/mode/python");
-editor.setOptions({
-  fontSize: "16px",
-  showPrintMargin: false,
-  useSoftTabs: true,
-  tabSize: 4,
-});
+editor.setOptions({ fontSize:"16px", showPrintMargin:false, useSoftTabs:true, tabSize:4 });
+
+// Console elements
+const consoleOutput = document.getElementById("consoleOutput");
+const consoleInput = document.getElementById("consoleInput");
 
 // ---------------------------
-// Paste detection
+// COPY/PASTE PREVENTION
 // ---------------------------
 let pasteCount = 0;
-let ranges = [];
 let events = 0;
+let ranges = [];
 
 function recordRange(startRowZeroBased, numLines){
-  const start = startRowZeroBased + 1;
-  const end = start + Math.max(1,numLines)-1;
-  ranges.push({start,end});
+  ranges.push({start:startRowZeroBased+1, end:startRowZeroBased+numLines});
   events++;
 }
 
 const aceInput = editor.textInput.getElement();
-aceInput.addEventListener("keydown", e=>{
-  if((e.ctrlKey||e.metaKey) && e.code === "KeyV"){
-    e.preventDefault();
-    pasteCount++;
-    console.log("Blocked paste");
-  }
+aceInput.addEventListener("keydown", e => {
+  if((e.ctrlKey||e.metaKey)&&e.code==="KeyV"){ e.preventDefault(); pasteCount++; }
 });
-aceInput.addEventListener("paste", e=>{ e.preventDefault(); pasteCount++; });
-aceInput.addEventListener("drop", e=>e.preventDefault());
-
-editor.on("paste", function(text){
-  const range = editor.getSelectionRange();
-  const lines = String(text||"").split(/\r?\n/).length;
-  recordRange(range.start.row, lines);
-});
+aceInput.addEventListener("paste", e => { e.preventDefault(); pasteCount++; });
+aceInput.addEventListener("drop", e => e.preventDefault());
 
 // ---------------------------
 // PYODIDE SETUP
 // ---------------------------
-const outputEl = document.getElementById("output");
-const consoleInput = document.getElementById("consoleInput");
-let pyReady = loadPyodide({
-  stdout: msg => outputEl.textContent += msg + "\n",
-  stderr: msg => outputEl.textContent += "[error] " + msg + "\n"
-}).then(async py => {
-
-  // Async input override
-  await py.runPythonAsync(`
-import builtins, asyncio, js
-async def py_input(prompt=""):
-    js.awaitInputJS(prompt)
-builtins.input = lambda prompt="": asyncio.get_event_loop().run_until_complete(py_input(prompt))
-`);
-  document.getElementById("offlineFlag").textContent = "ready";
+let pyReady = loadPyodide().then(py => { 
+  document.getElementById("offlineFlag").textContent = "ready"; 
   return py;
 });
 
 // ---------------------------
-// Console helpers
+// INPUT/OUTPUT HANDLING
 // ---------------------------
-function writeConsole(msg){
-  outputEl.textContent += msg;
-  outputEl.scrollTop = outputEl.scrollHeight;
+async function pyInput(prompt=""){
+  consoleOutput.textContent += prompt;
+  consoleInput.disabled = false;
+  consoleInput.focus();
+  
+  return new Promise(resolve => {
+    const handler = e => {
+      if(e.key==="Enter"){
+        const val = consoleInput.value;
+        consoleInput.value="";
+        consoleInput.disabled=true;
+        consoleInput.removeEventListener("keydown", handler);
+        consoleOutput.textContent += val + "\n";
+        resolve(val);
+      }
+    };
+    consoleInput.addEventListener("keydown", handler);
+  });
 }
 
-let inputResolve = null;
-let inputQueue = [];
-
-window.awaitInputJS = async function(promptText){
-  writeConsole(promptText);
-  if(inputQueue.length>0) return inputQueue.shift();
-  return new Promise(resolve => inputResolve=resolve);
-};
-
-consoleInput.addEventListener("keydown", e=>{
-  if(e.key==="Enter"){
-    const val = consoleInput.value;
-    writeConsole(val+"\n");
-    consoleInput.value="";
-    if(inputResolve){ inputResolve(val); inputResolve=null; }
-    else inputQueue.push(val);
-  }
-});
-
-// ---------------------------
-// Run code
-// ---------------------------
 async function runCode(){
+  consoleOutput.textContent = "";
+  const code = editor.getValue();
   const py = await pyReady;
-  outputEl.textContent = "Running...\n\n";
+  
+  // Override input() in Python
+  await py.runPythonAsync(`
+import builtins
+import js
+builtins.input = lambda prompt="": js.pyInput(prompt)
+  `);
+  
   try{
-    await py.runPythonAsync(editor.getValue());
+    await py.runPythonAsync(code);
   } catch(err){
-    writeConsole("[error] "+err+"\n");
+    consoleOutput.textContent += "[error] " + err + "\n";
   }
 }
 
+// ---------------------------
+// BUTTON HANDLERS
+// ---------------------------
 document.getElementById("runBtn").addEventListener("click", runCode);
-
-// ---------------------------
-// Submit code
-// ---------------------------
-function mergeRanges(ranges,maxLine){
-  if(!ranges || ranges.length===0) return [];
-  const arr = ranges.map(r=>({start:Math.max(1,Math.min(r.start,maxLine)),end:Math.max(1,Math.min(r.end,maxLine))})).sort((a,b)=>a.start-b.start);
-  const out=[]; let cur=arr[0];
-  for(let i=1;i<arr.length;i++){
-    const r=arr[i];
-    if(r.start<=cur.end+1) cur.end=Math.max(cur.end,r.end);
-    else { out.push(cur); cur=r; }
-  }
-  out.push(cur); return out;
-}
-function rangesToLabel(rs){ return rs.map(r=>r.start===r.end?`${r.start}`:`${r.start}–${r.end}`).join(", "); }
-
-function resetTracking(){ events=0; ranges.length=0; }
 
 document.getElementById("submitBtn").addEventListener("click", async ()=>{
   const first = document.getElementById("firstName").value.trim();
   const last  = document.getElementById("lastName").value.trim();
-  if(!first||!last){ alert("Enter first and last name."); return; }
-
+  if(!first||!last){ alert("Enter first and last name"); return; }
+  
   const totalLines = editor.session.getDocument().getLength();
-  const merged = mergeRanges(ranges,totalLines);
-  let pCount = 0; merged.forEach(r=>pCount+=(r.end-r.start+1));
-  const pPercent = totalLines>0?Math.round((pCount/totalLines)*100)+"%":"0%";
-
+  let pCount=0; ranges.forEach(r=>pCount+=r.end-r.start+1);
+  
   const body = new URLSearchParams({
-    token: SUBMIT_TOKEN,
-    firstName: first,
-    lastName: last,
-    code: editor.getValue(),
-    userAgent: navigator.userAgent,
-    timestamp: new Date().toISOString(),
-    pLines: rangesToLabel(merged),
-    pLineCount: String(pCount),
-    pPercent,
-    events: String(events),
-    pasteCount: String(pasteCount)
+    token:"SUBMIT_TOKEN_HERE",
+    firstName:first,
+    lastName:last,
+    code:editor.getValue(),
+    pLines: ranges.map(r=>r.start===r.end?r.start:`${r.start}–${r.end}`).join(","),
+    pLineCount: pCount,
+    events: events,
+    pasteCount: pasteCount
   });
-
+  
   try{
-    const resp = await fetch(SUBMIT_URL,{
-      method:"POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-      body,
-      cache:"no-store"
-    });
+    const resp = await fetch("YOUR_GOOGLE_SCRIPT_URL", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"}, body, cache:"no-store"});
     if(!resp.ok) throw new Error(resp.status);
-    alert("Submission sent.");
-    resetTracking();
-  } catch(err){
-    alert("Error submitting: "+err);
-  }
+    alert("Submission sent!");
+    events=0; ranges=[]; pasteCount=0;
+  } catch(err){ alert("Error submitting code: "+err); }
 });
 </script>
 
